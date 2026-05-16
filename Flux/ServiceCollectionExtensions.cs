@@ -1,7 +1,9 @@
 using Jellyfin.Plugin.Flux.Api;
+using Jellyfin.Plugin.Flux.Channels;
 using Jellyfin.Plugin.Flux.LiveTv;
 using Jellyfin.Plugin.Flux.ScheduledTasks;
 using Jellyfin.Plugin.Flux.Services;
+using MediaBrowser.Controller.Channels;
 using MediaBrowser.Controller.LiveTv;
 using MediaBrowser.Model.Tasks;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,6 +29,8 @@ public static class ServiceCollectionExtensions
 
         // Jellyfin integrations
         services.AddSingleton<ILiveTvService, FluxLiveTvService>();
+        services.AddSingleton<IChannel, VodChannel>();
+        services.AddSingleton<VodMetadataService>();
 
         // Scheduled tasks
         services.AddSingleton<IScheduledTask, SyncLiveTask>();
