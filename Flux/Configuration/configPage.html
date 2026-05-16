@@ -244,14 +244,21 @@
         function triggerSync(syncType) {
             var statusEl = document.getElementById('refreshStatus');
             statusEl.textContent = 'Triggering ' + syncType + ' sync…';
-            ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Flux/Sync/' + syncType) })
-                .then(function() {
+            var token = ApiClient.accessToken();
+            fetch(ApiClient.getUrl('Flux/Sync/' + syncType), {
+                method: 'POST',
+                headers: {
+                    'X-Emby-Token': token,
+                    'X-MediaBrowser-Token': token
+                }
+            })
+                .then(function(resp) {
+                    if (!resp.ok) { throw new Error('HTTP ' + resp.status); }
                     statusEl.textContent = syncType + ' sync started at ' + new Date().toLocaleTimeString() + '. Refreshing health in 5 s…';
                     setTimeout(loadLiveHealth, 5000);
                 })
                 .catch(function(e) {
-                    var msg = (e && e.status) ? 'HTTP ' + e.status : (e && e.message ? e.message : String(e));
-                    statusEl.textContent = 'Failed to trigger: ' + msg;
+                    statusEl.textContent = 'Failed to trigger: ' + (e && e.message ? e.message : String(e));
                 });
         }
         function loadLiveHealth() {

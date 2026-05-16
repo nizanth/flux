@@ -109,7 +109,7 @@ public class FluxController : ControllerBase
             }
         });
 
-        return Ok();
+        return Ok(new { started = true });
     }
 
     /// <summary>Returns live health status for all configured providers.</summary>

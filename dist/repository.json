@@ -9,6 +9,14 @@
     "owner": "nizanth",
     "versions": [
       {
+        "changelog": "Fix: use native fetch() with explicit auth token for sync trigger; return JSON body from sync endpoint to avoid empty-response parse errors.",
+        "checksum": "f5ab50967f762e877dc7ce2bba6be18c",
+        "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.6/flux_1.1.6.0.zip",
+        "targetAbi": "10.9.0.0",
+        "timestamp": "2026-05-15T00:00:00Z",
+        "version": "1.1.6.0"
+      },
+      {
         "changelog": "Fix: manual sync buttons now call /Flux/Sync/{type} directly (bypasses task ID lookup); health panel reads live HealthMonitor data via /Flux/Health.",
         "checksum": "fe3bf88cdd3f2e9cc383f424233da9d4",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.5/flux_1.1.5.0.zip",
