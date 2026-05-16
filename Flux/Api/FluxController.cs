@@ -1,9 +1,7 @@
-using System.ComponentModel.DataAnnotations;
 using System.Net.Http.Json;
 using System.Text.Json.Serialization;
 using Jellyfin.Plugin.Flux.Api.Dto;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.Extensions.Logging;
 
@@ -31,15 +29,19 @@ public class FluxController : ControllerBase
     /// <param name="cancellationToken">Cancellation token.</param>
     [HttpGet("TestConnection")]
     [AllowAnonymous]
-    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<ActionResult<TestConnectionResult>> TestConnection(
-        [FromQuery, Required] string url,
-        [FromQuery, Required] string username,
-        [FromQuery, Required] string password,
+        [FromQuery] string? url,
+        [FromQuery] string? username,
+        [FromQuery] string? password,
         CancellationToken cancellationToken)
     {
+        if (string.IsNullOrWhiteSpace(url) || string.IsNullOrWhiteSpace(username))
+        {
+            return Ok(new TestConnectionResult { Success = false, Message = "URL and username are required" });
+        }
+
         var baseUrl = url.TrimEnd('/');
-        var apiUrl = $"{baseUrl}/player_api.php?username={Uri.EscapeDataString(username)}&password={Uri.EscapeDataString(password)}";
+        var apiUrl = $"{baseUrl}/player_api.php?username={Uri.EscapeDataString(username)}&password={Uri.EscapeDataString(password ?? string.Empty)}";
 
         try
         {

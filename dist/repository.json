@@ -9,6 +9,14 @@
     "owner": "nizanth",
     "versions": [
       {
+        "changelog": "Fix: remove [Required] on TestConnection query params — [ApiController] automatic validation was returning HTTP 400 before the handler ran.",
+        "checksum": "34ca6c79979a1884d670b1dd53c70455",
+        "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.3/flux_1.1.3.0.zip",
+        "targetAbi": "10.9.0.0",
+        "timestamp": "2026-05-15T00:00:00Z",
+        "version": "1.1.3.0"
+      },
+      {
         "changelog": "Fix: use AllowAnonymous on TestConnection endpoint and switch to ApiClient.getJSON to avoid auth/network errors.",
         "checksum": "e8633af69c838afc0d5cd7ee54193b4a",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.2/flux_1.1.2.0.zip",
