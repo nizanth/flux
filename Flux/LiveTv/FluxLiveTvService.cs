@@ -16,6 +16,7 @@ public sealed class FluxLiveTvService : ILiveTvService
     private readonly ProviderRegistry _providerRegistry;
     private readonly CatalogCache _catalogCache;
     private readonly XtreamApiClient _apiClient;
+    private readonly CatalogSyncService _syncService;
     private readonly ILogger<FluxLiveTvService> _logger;
 
     /// <summary>Initializes a new instance of <see cref="FluxLiveTvService"/>.</summary>
@@ -23,11 +24,13 @@ public sealed class FluxLiveTvService : ILiveTvService
         ProviderRegistry providerRegistry,
         CatalogCache catalogCache,
         XtreamApiClient apiClient,
+        CatalogSyncService syncService,
         ILogger<FluxLiveTvService> logger)
     {
         _providerRegistry = providerRegistry;
         _catalogCache = catalogCache;
         _apiClient = apiClient;
+        _syncService = syncService;
         _logger = logger;
     }
 
@@ -40,11 +43,31 @@ public sealed class FluxLiveTvService : ILiveTvService
     // ── Channels ──────────────────────────────────────────────────────────────
 
     /// <inheritdoc />
-    public Task<IEnumerable<ChannelInfo>> GetChannelsAsync(CancellationToken cancellationToken)
+    public async Task<IEnumerable<ChannelInfo>> GetChannelsAsync(CancellationToken cancellationToken)
     {
+        var providers = _providerRegistry.GetAll();
+
+        // If no provider has synced live streams yet, do a live sync now so Jellyfin
+        // gets channels on the very first call (avoids the 15-second startup delay race).
+        var anyPopulated = providers.Any(
+            p => (_catalogCache.GetOrCreate(p.Id).LiveStreams?.Count ?? 0) > 0);
+
+        if (!anyPopulated && providers.Count > 0)
+        {
+            _logger.LogInformation("GetChannelsAsync: catalog empty — syncing live streams now");
+            try
+            {
+                await _syncService.SyncAllAsync(cancellationToken, "live").ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "GetChannelsAsync: on-demand live sync failed");
+            }
+        }
+
         var channels = new List<ChannelInfo>();
 
-        foreach (var provider in _providerRegistry.GetAll())
+        foreach (var provider in providers)
         {
             var catalog = _catalogCache.GetOrCreate(provider.Id);
             var streams = catalog.LiveStreams;
@@ -68,8 +91,8 @@ public sealed class FluxLiveTvService : ILiveTvService
             }
         }
 
-        _logger.LogInformation("Returning {Count} live channels", channels.Count);
-        return Task.FromResult<IEnumerable<ChannelInfo>>(channels);
+        _logger.LogInformation("GetChannelsAsync: returning {Count} live channels", channels.Count);
+        return channels;
     }
 
     // ── Programs (EPG) ────────────────────────────────────────────────────────
@@ -250,31 +273,31 @@ public sealed class FluxLiveTvService : ILiveTvService
 
     /// <inheritdoc />
     public Task<SeriesTimerInfo> GetNewTimerDefaultsAsync(CancellationToken cancellationToken, ProgramInfo? program = null)
-        => throw new NotSupportedException("Flux does not support recording timers.");
+        => Task.FromResult(new SeriesTimerInfo());
 
     /// <inheritdoc />
     public Task CreateTimerAsync(TimerInfo info, CancellationToken cancellationToken)
-        => throw new NotSupportedException("Flux does not support recording timers.");
+        => Task.CompletedTask;
 
     /// <inheritdoc />
     public Task CreateSeriesTimerAsync(SeriesTimerInfo info, CancellationToken cancellationToken)
-        => throw new NotSupportedException("Flux does not support recording timers.");
+        => Task.CompletedTask;
 
     /// <inheritdoc />
     public Task UpdateTimerAsync(TimerInfo updatedTimer, CancellationToken cancellationToken)
-        => throw new NotSupportedException("Flux does not support recording timers.");
+        => Task.CompletedTask;
 
     /// <inheritdoc />
     public Task UpdateSeriesTimerAsync(SeriesTimerInfo updatedTimer, CancellationToken cancellationToken)
-        => throw new NotSupportedException("Flux does not support recording timers.");
+        => Task.CompletedTask;
 
     /// <inheritdoc />
     public Task CancelTimerAsync(string timerId, CancellationToken cancellationToken)
-        => throw new NotSupportedException("Flux does not support recording timers.");
+        => Task.CompletedTask;
 
     /// <inheritdoc />
     public Task CancelSeriesTimerAsync(string timerId, CancellationToken cancellationToken)
-        => throw new NotSupportedException("Flux does not support recording timers.");
+        => Task.CompletedTask;
 
     // ── Helpers ───────────────────────────────────────────────────────────────
 
