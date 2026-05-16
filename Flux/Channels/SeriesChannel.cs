@@ -228,7 +228,7 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
         {
             new MediaSourceInfo
             {
-                Id = "0",
+                Id = id,
                 Path = url,
                 Protocol = MediaProtocol.Http,
                 IsRemote = true,
