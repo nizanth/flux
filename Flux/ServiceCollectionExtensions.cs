@@ -6,6 +6,7 @@ using Jellyfin.Plugin.Flux.Services;
 using MediaBrowser.Controller.Channels;
 using MediaBrowser.Controller.LiveTv;
 using MediaBrowser.Model.Tasks;
+using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Jellyfin.Plugin.Flux;
@@ -38,6 +39,9 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<IScheduledTask, SyncLiveTask>();
         services.AddSingleton<IScheduledTask, SyncVodTask>();
         services.AddSingleton<IScheduledTask, SyncSeriesTask>();
+
+        // Startup background service
+        services.AddHostedService<FluxStartup>();
 
         return services;
     }
