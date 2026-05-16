@@ -1,9 +1,12 @@
 using System.Net.Http.Json;
+using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json;
 using Jellyfin.Plugin.Flux.Api.Dto;
 using Jellyfin.Plugin.Flux.Configuration;
 using Microsoft.Extensions.Logging;
+
+[assembly: InternalsVisibleTo("Flux.Tests")]
 
 namespace Jellyfin.Plugin.Flux.Api;
 
