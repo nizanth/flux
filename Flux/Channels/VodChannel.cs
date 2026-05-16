@@ -46,13 +46,15 @@ public sealed class VodChannel : IChannel, IRequiresMediaInfoCallback
     {
         get
         {
+            var version = Plugin.Instance?.Version.ToString() ?? "1";
             var timestamps = _providerRegistry.GetAll()
                 .Select(p => _catalogCache.GetOrCreate(p.Id).VodRefreshedAt)
                 .Where(t => t.HasValue)
                 .ToList();
-            return timestamps.Count > 0
+            var ts = timestamps.Count > 0
                 ? timestamps.Max()!.Value.ToString("yyyyMMddHHmmss")
                 : "empty";
+            return $"{version}_{ts}";
         }
     }
 
@@ -120,7 +122,7 @@ public sealed class VodChannel : IChannel, IRequiresMediaInfoCallback
         {
             new MediaSourceInfo
             {
-                Id = "0",
+                Id = id,
                 Path = url,
                 Protocol = MediaProtocol.Http,
                 IsRemote = true,

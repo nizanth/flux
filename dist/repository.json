@@ -9,6 +9,14 @@
     "owner": "nizanth",
     "versions": [
       {
+        "changelog": "Fix: VodChannel MediaSourceInfo.Id set to composite item ID (was hardcoded '0'); add plugin version to DataVersion on both VodChannel and SeriesChannel to force Jellyfin re-index on upgrade.",
+        "checksum": "bb25bb30e929851399579b75f444ac53",
+        "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.11/flux_1.1.11.0.zip",
+        "targetAbi": "10.9.0.0",
+        "timestamp": "2026-05-16T00:00:00Z",
+        "version": "1.1.11.0"
+      },
+      {
         "changelog": "Fix: restore IRequiresMediaInfoCallback on VodChannel (movies broken in v1.1.9); fix SeriesChannel episode ID to use only alphanumeric separators and a fast O(1) GetChannelItemMediaInfo.",
         "checksum": "dfeb89835c8c82f99298787fc88d697d",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.10/flux_1.1.10.0.zip",

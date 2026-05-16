@@ -48,13 +48,15 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
     {
         get
         {
+            var version = Plugin.Instance?.Version.ToString() ?? "1";
             var timestamps = _providerRegistry.GetAll()
                 .Select(p => _catalogCache.GetOrCreate(p.Id).SeriesRefreshedAt)
                 .Where(t => t.HasValue)
                 .ToList();
-            return timestamps.Count > 0
+            var ts = timestamps.Count > 0
                 ? timestamps.Max()!.Value.ToString("yyyyMMddHHmmss")
                 : "empty";
+            return $"{version}_{ts}";
         }
     }
 
