@@ -1,0 +1,18 @@
+# Build output
+bin/
+obj/
+*.dll
+*.pdb
+*.xml
+*.deps.json
+
+# User-specific
+.vs/
+*.user
+*.suo
+.idea/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
