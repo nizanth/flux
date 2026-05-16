@@ -197,26 +197,14 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
         string id,
         CancellationToken cancellationToken)
     {
-        // Composite ID format: "{providerId}_ep_{seriesId}|{episodeId}|{container}"
+        // Composite ID: "{providerId}_ep_{seriesId}|{episodeId}|{container}"  (v1.1.7+)
+        //           or: "{providerId}_ep_{episodeId}"                          (pre-v1.1.7)
         var outerParts = id.Split("_ep_", 2, StringSplitOptions.None);
         if (outerParts.Length != 2 || !Guid.TryParse(outerParts[0], out var providerId))
         {
             _logger.LogWarning("SeriesChannel: could not parse composite ID '{Id}'", id);
             return Enumerable.Empty<MediaSourceInfo>();
         }
-
-        var innerParts = outerParts[1].Split('|');
-        if (innerParts.Length < 2
-            || !int.TryParse(innerParts[0], out var seriesId)
-            || !int.TryParse(innerParts[1], out var numericEpisodeId))
-        {
-            _logger.LogWarning("SeriesChannel: could not parse episode segment '{Segment}'", outerParts[1]);
-            return Enumerable.Empty<MediaSourceInfo>();
-        }
-
-        var container = innerParts.Length > 2 && !string.IsNullOrEmpty(innerParts[2])
-            ? innerParts[2]
-            : "mp4";
 
         var provider = _providerRegistry.GetById(providerId);
         if (provider is null)
@@ -225,24 +213,61 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
             return Enumerable.Empty<MediaSourceInfo>();
         }
 
-        // Fetch info for this specific series only — usually a cache hit from browsing the season.
-        var episodeName = numericEpisodeId.ToString();
-        var seriesInfo = await _metadataService
-            .GetOrFetchInfoAsync(provider, seriesId, cancellationToken)
-            .ConfigureAwait(false);
+        var segment = outerParts[1];
+        int numericEpisodeId;
+        string container;
+        int seriesId = -1;
+        string episodeIdStr;
 
-        if (seriesInfo?.Episodes is not null)
+        var innerParts = segment.Split('|');
+        if (innerParts.Length >= 2
+            && int.TryParse(innerParts[0], out seriesId)
+            && int.TryParse(innerParts[1], out numericEpisodeId))
         {
-            var episode = seriesInfo.Episodes.Values
-                .SelectMany(eps => eps)
-                .FirstOrDefault(e => e.Id == innerParts[1]);
-            if (episode is not null)
+            // New format: {seriesId}|{episodeId}|{container}
+            episodeIdStr = innerParts[1];
+            container = innerParts.Length > 2 && !string.IsNullOrEmpty(innerParts[2])
+                ? innerParts[2]
+                : "mp4";
+        }
+        else if (int.TryParse(segment, out numericEpisodeId))
+        {
+            // Old format: just {episodeId}
+            episodeIdStr = segment;
+            container = "mp4";
+        }
+        else
+        {
+            _logger.LogWarning("SeriesChannel: cannot parse episode segment '{Segment}' in '{Id}'", segment, id);
+            return Enumerable.Empty<MediaSourceInfo>();
+        }
+
+        // Fetch episode title — best-effort only, never blocks playback on failure.
+        var episodeName = numericEpisodeId.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        if (seriesId > 0)
+        {
+            try
             {
-                episodeName = episode.Title;
+                var seriesInfo = await _metadataService
+                    .GetOrFetchInfoAsync(provider, seriesId, cancellationToken)
+                    .ConfigureAwait(false);
+
+                var ep = seriesInfo?.Episodes?.Values
+                    .SelectMany(eps => eps)
+                    .FirstOrDefault(e => e.Id == episodeIdStr);
+                if (ep is not null)
+                {
+                    episodeName = ep.Title;
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "SeriesChannel: metadata lookup failed for series {SeriesId}", seriesId);
             }
         }
 
         var url = _apiClient.BuildSeriesStreamUrl(provider, numericEpisodeId, container);
+        _logger.LogDebug("SeriesChannel: serving episode {EpisodeId} → {Url}", numericEpisodeId, url);
 
         return new List<MediaSourceInfo>
         {

@@ -9,6 +9,14 @@
     "owner": "nizanth",
     "versions": [
       {
+        "changelog": "Fix: GetChannelItemMediaInfo handles both old and new episode ID formats; metadata fetch wrapped in try-catch so exceptions never block playback.",
+        "checksum": "8a79dff810d164d1c5f6787500f41e66",
+        "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.8/flux_1.1.8.0.zip",
+        "targetAbi": "10.9.0.0",
+        "timestamp": "2026-05-15T00:00:00Z",
+        "version": "1.1.8.0"
+      },
+      {
         "changelog": "Fix: dynamic DataVersion on VOD/Series channels forces Jellyfin to re-fetch after sync; series episode ID now encodes seriesId+container to avoid O(N) HTTP lookup on playback.",
         "checksum": "08f27c198cbb6a2c053cc761831d5b7e",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.7/flux_1.1.7.0.zip",
