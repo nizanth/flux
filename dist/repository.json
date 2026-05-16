@@ -10,7 +10,7 @@
     "versions": [
       {
         "changelog": "Fix: implement IPluginServiceRegistrator so Jellyfin correctly registers services and shows the Settings page. Add data-pluginuniqueid to config page.",
-        "checksum": "ca4d5dbf18371e456bfd79a6cbebd244",
+        "checksum": "f84835865c9737737d04f0ba22dd4485",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.0/flux_1.1.0.0.zip",
         "targetAbi": "10.9.0.0",
         "timestamp": "2026-05-15T00:00:00Z",
