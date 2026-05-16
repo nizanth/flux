@@ -1,8 +1,37 @@
 using System;
 using System.Collections.Generic;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace Jellyfin.Plugin.Flux.Api.Dto;
+
+/// <summary>
+/// Converts any JSON scalar (number, boolean, string, null) to a nullable string.
+/// Xtream Codes providers are inconsistent — the same field may arrive as a quoted
+/// string on one server and a bare number on another.
+/// </summary>
+internal sealed class AnyToStringConverter : JsonConverter<string?>
+{
+    public override string? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        switch (reader.TokenType)
+        {
+            case JsonTokenType.Null: return null;
+            case JsonTokenType.String: return reader.GetString();
+            case JsonTokenType.True: return "true";
+            case JsonTokenType.False: return "false";
+            case JsonTokenType.Number:
+                // Try integer first to avoid unnecessary decimal points
+                return reader.TryGetInt64(out var l) ? l.ToString() : reader.GetDouble().ToString();
+            default:
+                reader.Skip();
+                return null;
+        }
+    }
+
+    public override void Write(Utf8JsonWriter writer, string? value, JsonSerializerOptions options)
+        => writer.WriteStringValue(value);
+}
 
 /// <summary>
 /// Root authentication response from the Xtream Codes player_api.php endpoint.
@@ -29,18 +58,22 @@ public sealed class UserInfo
 
     /// <summary>Gets or sets the account status (e.g. "Active", "Expired").</summary>
     [JsonPropertyName("status")]
-    public string Status { get; set; } = string.Empty;
+    [JsonConverter(typeof(AnyToStringConverter))]
+    public string? Status { get; set; }
 
-    /// <summary>Gets or sets the Unix timestamp (as a string) when the account expires.</summary>
+    /// <summary>Gets or sets the Unix timestamp when the account expires (string or number depending on provider).</summary>
     [JsonPropertyName("exp_date")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? ExpDate { get; set; }
 
     /// <summary>Gets or sets the maximum number of simultaneous connections allowed.</summary>
     [JsonPropertyName("max_connections")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? MaxConnections { get; set; }
 
     /// <summary>Gets or sets the current number of active connections.</summary>
     [JsonPropertyName("active_cons")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? ActiveCons { get; set; }
 
     /// <summary>Gets or sets the list of output formats allowed for this account.</summary>
@@ -57,12 +90,14 @@ public sealed class ServerInfo
     [JsonPropertyName("url")]
     public string? Url { get; set; }
 
-    /// <summary>Gets or sets the HTTP port the server listens on.</summary>
+    /// <summary>Gets or sets the HTTP port the server listens on (number or string depending on provider).</summary>
     [JsonPropertyName("port")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? Port { get; set; }
 
-    /// <summary>Gets or sets the HTTPS port the server listens on.</summary>
+    /// <summary>Gets or sets the HTTPS port the server listens on (number or string depending on provider).</summary>
     [JsonPropertyName("https_port")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? HttpsPort { get; set; }
 
     /// <summary>Gets or sets the preferred protocol ("http" or "https").</summary>
@@ -115,6 +150,7 @@ public sealed class LiveStream
 
     /// <summary>Gets or sets the category this stream belongs to.</summary>
     [JsonPropertyName("category_id")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? CategoryId { get; set; }
 
     /// <summary>Gets or sets a value indicating whether TV archive/catch-up is available (1) or not (0).</summary>
@@ -149,6 +185,7 @@ public sealed class VodStream
 
     /// <summary>Gets or sets the category this stream belongs to.</summary>
     [JsonPropertyName("category_id")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? CategoryId { get; set; }
 
     /// <summary>Gets or sets the file container extension (e.g. "mp4", "mkv").</summary>
@@ -157,10 +194,12 @@ public sealed class VodStream
 
     /// <summary>Gets or sets the rating string for this movie.</summary>
     [JsonPropertyName("rating")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? Rating { get; set; }
 
-    /// <summary>Gets or sets the Unix timestamp (as a string) when the stream was added.</summary>
+    /// <summary>Gets or sets the Unix timestamp when the stream was added.</summary>
     [JsonPropertyName("added")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? Added { get; set; }
 }
 
@@ -213,6 +252,7 @@ public sealed class VodInfoDetail
 
     /// <summary>Gets or sets the rating string.</summary>
     [JsonPropertyName("rating")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? Rating { get; set; }
 
     /// <summary>Gets or sets the duration in seconds.</summary>
@@ -231,8 +271,9 @@ public sealed class VodInfoDetail
     [JsonPropertyName("youtube_trailer")]
     public string? YoutubeTrailer { get; set; }
 
-    /// <summary>Gets or sets the episode runtime string (used for series, may appear in some VOD responses).</summary>
+    /// <summary>Gets or sets the episode runtime string.</summary>
     [JsonPropertyName("episode_run_time")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? EpisodeRunTime { get; set; }
 }
 
@@ -255,6 +296,7 @@ public sealed class SeriesStream
 
     /// <summary>Gets or sets the category this series belongs to.</summary>
     [JsonPropertyName("category_id")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? CategoryId { get; set; }
 
     /// <summary>Gets or sets the genre(s) of the series.</summary>
@@ -297,8 +339,9 @@ public sealed class SeriesInfo
 /// </summary>
 public sealed class SeriesInfoDetail
 {
-    /// <summary>Gets or sets the TMDB identifier (may be a numeric string).</summary>
+    /// <summary>Gets or sets the TMDB identifier.</summary>
     [JsonPropertyName("tmdb_id")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? TmdbId { get; set; }
 
     /// <summary>Gets or sets the IMDb identifier.</summary>
@@ -307,6 +350,7 @@ public sealed class SeriesInfoDetail
 
     /// <summary>Gets or sets the TVDB identifier.</summary>
     [JsonPropertyName("tvdb_id")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? TvdbId { get; set; }
 
     /// <summary>Gets or sets the series name.</summary>
@@ -331,6 +375,7 @@ public sealed class SeriesInfoDetail
 
     /// <summary>Gets or sets the episode runtime string.</summary>
     [JsonPropertyName("episode_run_time")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string? EpisodeRunTime { get; set; }
 
     /// <summary>Gets or sets a list of backdrop image URLs.</summary>
@@ -371,6 +416,7 @@ public sealed class EpisodeInfo
 {
     /// <summary>Gets or sets the unique episode identifier (stream ID as a string).</summary>
     [JsonPropertyName("id")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string Id { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the episode number within the season.</summary>
@@ -429,10 +475,12 @@ public sealed class ShortEpgEntry
 {
     /// <summary>Gets or sets the entry identifier.</summary>
     [JsonPropertyName("id")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string Id { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the EPG channel identifier.</summary>
     [JsonPropertyName("epg_id")]
+    [JsonConverter(typeof(AnyToStringConverter))]
     public string EpgId { get; set; } = string.Empty;
 
     /// <summary>Gets or sets the programme title (may be Base64-encoded depending on provider).</summary>

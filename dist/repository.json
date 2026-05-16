@@ -9,6 +9,14 @@
     "owner": "nizanth",
     "versions": [
       {
+        "changelog": "Fix: AnyToStringConverter handles fields that arrive as numbers from some providers (port, max_connections, exp_date, rating, etc.).",
+        "checksum": "8603e35b20723a2f4efd77aff4a45b1a",
+        "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.4/flux_1.1.4.0.zip",
+        "targetAbi": "10.9.0.0",
+        "timestamp": "2026-05-15T00:00:00Z",
+        "version": "1.1.4.0"
+      },
+      {
         "changelog": "Fix: remove [Required] on TestConnection query params — [ApiController] automatic validation was returning HTTP 400 before the handler ran.",
         "checksum": "34ca6c79979a1884d670b1dd53c70455",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.3/flux_1.1.3.0.zip",
