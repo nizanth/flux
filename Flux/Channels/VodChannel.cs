@@ -48,7 +48,19 @@ public sealed class VodChannel : IChannel, IRequiresMediaInfoCallback
     public string Description => "VOD movies from all configured Flux (Xtream Codes) providers.";
 
     /// <inheritdoc />
-    public string DataVersion => "1";
+    public string DataVersion
+    {
+        get
+        {
+            var timestamps = _providerRegistry.GetAll()
+                .Select(p => _catalogCache.GetOrCreate(p.Id).VodRefreshedAt)
+                .Where(t => t.HasValue)
+                .ToList();
+            return timestamps.Count > 0
+                ? timestamps.Max()!.Value.ToString("yyyyMMddHHmmss")
+                : "empty";
+        }
+    }
 
     /// <inheritdoc />
     public string HomePageUrl => "https://github.com/nizanth/flux";

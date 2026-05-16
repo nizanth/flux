@@ -9,6 +9,14 @@
     "owner": "nizanth",
     "versions": [
       {
+        "changelog": "Fix: dynamic DataVersion on VOD/Series channels forces Jellyfin to re-fetch after sync; series episode ID now encodes seriesId+container to avoid O(N) HTTP lookup on playback.",
+        "checksum": "08f27c198cbb6a2c053cc761831d5b7e",
+        "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.7/flux_1.1.7.0.zip",
+        "targetAbi": "10.9.0.0",
+        "timestamp": "2026-05-15T00:00:00Z",
+        "version": "1.1.7.0"
+      },
+      {
         "changelog": "Fix: use native fetch() with explicit auth token for sync trigger; return JSON body from sync endpoint to avoid empty-response parse errors.",
         "checksum": "f5ab50967f762e877dc7ce2bba6be18c",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.6/flux_1.1.6.0.zip",

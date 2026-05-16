@@ -51,7 +51,19 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
     public string Description => "TV series from all configured Flux (Xtream Codes) providers.";
 
     /// <inheritdoc />
-    public string DataVersion => "1";
+    public string DataVersion
+    {
+        get
+        {
+            var timestamps = _providerRegistry.GetAll()
+                .Select(p => _catalogCache.GetOrCreate(p.Id).SeriesRefreshedAt)
+                .Where(t => t.HasValue)
+                .ToList();
+            return timestamps.Count > 0
+                ? timestamps.Max()!.Value.ToString("yyyyMMddHHmmss")
+                : "empty";
+        }
+    }
 
     /// <inheritdoc />
     public string HomePageUrl => "https://github.com/nizanth/flux";
@@ -153,7 +165,9 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
                             .OrderBy(e => e.EpisodeNum)
                             .Select(ep => new ChannelItemInfo
                             {
-                                Id = $"{providerId}_ep_{ep.Id}",
+                                // Encode seriesId|episodeId|container so GetChannelItemMediaInfo
+                                // can build the URL without iterating all series.
+                                Id = $"{providerId}_ep_{seriesId}|{ep.Id}|{ep.ContainerExtension}",
                                 Name = ep.Title,
                                 Type = ChannelItemType.Media,
                                 MediaType = ChannelMediaType.Video,
@@ -183,15 +197,26 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
         string id,
         CancellationToken cancellationToken)
     {
-        // Composite ID format: "{providerId}_ep_{episodeId}"
-        var parts = id.Split("_ep_", 2, StringSplitOptions.None);
-        if (parts.Length != 2 || !Guid.TryParse(parts[0], out var providerId))
+        // Composite ID format: "{providerId}_ep_{seriesId}|{episodeId}|{container}"
+        var outerParts = id.Split("_ep_", 2, StringSplitOptions.None);
+        if (outerParts.Length != 2 || !Guid.TryParse(outerParts[0], out var providerId))
         {
             _logger.LogWarning("SeriesChannel: could not parse composite ID '{Id}'", id);
             return Enumerable.Empty<MediaSourceInfo>();
         }
 
-        var episodeId = parts[1]; // string ID from EpisodeInfo
+        var innerParts = outerParts[1].Split('|');
+        if (innerParts.Length < 2
+            || !int.TryParse(innerParts[0], out var seriesId)
+            || !int.TryParse(innerParts[1], out var numericEpisodeId))
+        {
+            _logger.LogWarning("SeriesChannel: could not parse episode segment '{Segment}'", outerParts[1]);
+            return Enumerable.Empty<MediaSourceInfo>();
+        }
+
+        var container = innerParts.Length > 2 && !string.IsNullOrEmpty(innerParts[2])
+            ? innerParts[2]
+            : "mp4";
 
         var provider = _providerRegistry.GetById(providerId);
         if (provider is null)
@@ -200,45 +225,21 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
             return Enumerable.Empty<MediaSourceInfo>();
         }
 
-        // Search cached series for the episode to get its container extension
-        var container = "mp4";
-        var episodeName = episodeId;
+        // Fetch info for this specific series only — usually a cache hit from browsing the season.
+        var episodeName = numericEpisodeId.ToString();
+        var seriesInfo = await _metadataService
+            .GetOrFetchInfoAsync(provider, seriesId, cancellationToken)
+            .ConfigureAwait(false);
 
-        var catalog = _catalogCache.GetOrCreate(provider.Id);
-        if (catalog.Series is not null)
+        if (seriesInfo?.Episodes is not null)
         {
-            foreach (var series in catalog.Series)
+            var episode = seriesInfo.Episodes.Values
+                .SelectMany(eps => eps)
+                .FirstOrDefault(e => e.Id == innerParts[1]);
+            if (episode is not null)
             {
-                var seriesInfo = await _metadataService
-                    .GetOrFetchInfoAsync(provider, series.SeriesId, cancellationToken)
-                    .ConfigureAwait(false);
-
-                if (seriesInfo?.Episodes is null)
-                {
-                    continue;
-                }
-
-                var episode = seriesInfo.Episodes.Values
-                    .SelectMany(eps => eps)
-                    .FirstOrDefault(e => e.Id == episodeId);
-
-                if (episode is not null)
-                {
-                    if (!string.IsNullOrEmpty(episode.ContainerExtension))
-                    {
-                        container = episode.ContainerExtension;
-                    }
-
-                    episodeName = episode.Title;
-                    break;
-                }
+                episodeName = episode.Title;
             }
-        }
-
-        if (!int.TryParse(episodeId, out var numericEpisodeId))
-        {
-            _logger.LogWarning("SeriesChannel: episode ID '{EpisodeId}' is not numeric", episodeId);
-            return Enumerable.Empty<MediaSourceInfo>();
         }
 
         var url = _apiClient.BuildSeriesStreamUrl(provider, numericEpisodeId, container);
