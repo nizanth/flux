@@ -9,6 +9,14 @@
     "owner": "nizanth",
     "versions": [
       {
+        "changelog": "Fix: manual sync buttons now call /Flux/Sync/{type} directly (bypasses task ID lookup); health panel reads live HealthMonitor data via /Flux/Health.",
+        "checksum": "fe3bf88cdd3f2e9cc383f424233da9d4",
+        "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.5/flux_1.1.5.0.zip",
+        "targetAbi": "10.9.0.0",
+        "timestamp": "2026-05-15T00:00:00Z",
+        "version": "1.1.5.0"
+      },
+      {
         "changelog": "Fix: AnyToStringConverter handles fields that arrive as numbers from some providers (port, max_connections, exp_date, rating, etc.).",
         "checksum": "8603e35b20723a2f4efd77aff4a45b1a",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.4/flux_1.1.4.0.zip",

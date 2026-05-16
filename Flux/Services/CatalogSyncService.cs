@@ -34,8 +34,14 @@ public sealed class CatalogSyncService
         _logger = logger;
     }
 
-    /// <summary>Syncs all configured providers, skipping any that are already syncing.</summary>
-    public async Task SyncAllAsync(CancellationToken ct = default)
+    /// <summary>
+    /// Syncs all configured providers, optionally restricted to a subset of content types.
+    /// </summary>
+    /// <param name="ct">Cancellation token.</param>
+    /// <param name="syncType">
+    /// Which content to sync: "live", "vod", "series", or "all" (default).
+    /// </param>
+    public async Task SyncAllAsync(CancellationToken ct = default, string syncType = "all")
     {
         var config = Plugin.Instance?.Configuration;
         if (config is null)
@@ -43,12 +49,12 @@ public sealed class CatalogSyncService
             return;
         }
 
-        var tasks = config.Providers.Select(p => SyncProviderAsync(p, config, ct));
+        var tasks = config.Providers.Select(p => SyncProviderAsync(p, config, ct, syncType));
         await Task.WhenAll(tasks).ConfigureAwait(false);
     }
 
     /// <summary>Syncs a single provider. Skips if already in-progress (reentrancy guard).</summary>
-    public async Task SyncProviderAsync(ProviderConfig provider, PluginConfiguration config, CancellationToken ct = default)
+    public async Task SyncProviderAsync(ProviderConfig provider, PluginConfiguration config, CancellationToken ct = default, string syncType = "all")
     {
         var gate = _locks.GetOrAdd(provider.Id, _ => new SemaphoreSlim(1, 1));
         if (!await gate.WaitAsync(0, ct).ConfigureAwait(false))
@@ -59,7 +65,7 @@ public sealed class CatalogSyncService
 
         try
         {
-            await RunSyncAsync(provider, config, ct).ConfigureAwait(false);
+            await RunSyncAsync(provider, config, ct, syncType).ConfigureAwait(false);
         }
         finally
         {
@@ -69,9 +75,9 @@ public sealed class CatalogSyncService
 
     // ── Sync coordination ──────────────────────────────────────────────────
 
-    private async Task RunSyncAsync(ProviderConfig provider, PluginConfiguration config, CancellationToken ct)
+    private async Task RunSyncAsync(ProviderConfig provider, PluginConfiguration config, CancellationToken ct, string syncType = "all")
     {
-        _logger.LogInformation("Starting sync for provider '{Provider}'", provider.DisplayName);
+        _logger.LogInformation("Starting {Type} sync for provider '{Provider}'", syncType, provider.DisplayName);
 
         // Validate credentials first
         var auth = await _apiClient.AuthenticateAsync(provider, ct).ConfigureAwait(false);
@@ -84,25 +90,26 @@ public sealed class CatalogSyncService
 
         var catalog = _cache.GetOrCreate(provider.Id);
         var now = DateTime.UtcNow;
+        var all = syncType == "all";
 
         var syncTasks = new List<Task>();
 
-        if (IsStale(catalog.LiveStreamsRefreshedAt, config.LiveChannelRefreshHours, now))
+        if ((all || syncType == "live") && IsStale(catalog.LiveStreamsRefreshedAt, config.LiveChannelRefreshHours, now))
         {
             syncTasks.Add(SyncLiveAsync(provider, catalog, ct));
         }
 
-        if (IsStale(catalog.EpgRefreshedAt, config.EpgRefreshHours, now))
+        if ((all || syncType == "live") && IsStale(catalog.EpgRefreshedAt, config.EpgRefreshHours, now))
         {
             syncTasks.Add(SyncEpgAsync(provider, catalog, ct));
         }
 
-        if (IsStale(catalog.VodRefreshedAt, config.VodRefreshHours, now))
+        if ((all || syncType == "vod") && IsStale(catalog.VodRefreshedAt, config.VodRefreshHours, now))
         {
             syncTasks.Add(SyncVodAsync(provider, catalog, ct));
         }
 
-        if (IsStale(catalog.SeriesRefreshedAt, config.SeriesRefreshHours, now))
+        if ((all || syncType == "series") && IsStale(catalog.SeriesRefreshedAt, config.SeriesRefreshHours, now))
         {
             syncTasks.Add(SyncSeriesAsync(provider, catalog, ct));
         }

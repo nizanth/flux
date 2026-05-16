@@ -79,9 +79,9 @@
                 <div class="verticalSection" style="margin-top:1.5em">
                     <h3 class="checkboxListLabel">Manual Refresh</h3>
                     <div style="display:flex;gap:.5em;flex-wrap:wrap;margin-bottom:.5em">
-                        <button type="button" class="raised emby-button btnManualRefresh" data-task="FluxSyncLive"><span>Refresh Live + EPG</span></button>
-                        <button type="button" class="raised emby-button btnManualRefresh" data-task="FluxSyncVod"><span>Refresh VOD</span></button>
-                        <button type="button" class="raised emby-button btnManualRefresh" data-task="FluxSyncSeries"><span>Refresh Series</span></button>
+                        <button type="button" class="raised emby-button btnManualRefresh" data-sync="live"><span>Refresh Live + EPG</span></button>
+                        <button type="button" class="raised emby-button btnManualRefresh" data-sync="vod"><span>Refresh VOD</span></button>
+                        <button type="button" class="raised emby-button btnManualRefresh" data-sync="series"><span>Refresh Series</span></button>
                     </div>
                     <div id="refreshStatus" style="font-size:.85em;color:var(--text-color-secondary,#aaa)"></div>
                 </div>
@@ -148,7 +148,7 @@
                 document.getElementById('epgRefreshHours').value = cfg.EpgRefreshHours || 6;
                 document.getElementById('vodRefreshHours').value = cfg.VodRefreshHours || 24;
                 document.getElementById('seriesRefreshHours').value = cfg.SeriesRefreshHours || 24;
-                renderHealth(cfg.Providers || []);
+                loadLiveHealth();
             });
         }
         function saveGlobalConfig() {
@@ -241,25 +241,34 @@
                     showMsg('testResult', '✗ ' + msg, false);
                 });
         }
-        function triggerTask(key) {
-            ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('ScheduledTasks/Running/' + encodeURIComponent(key)) })
+        function triggerSync(syncType) {
+            var statusEl = document.getElementById('refreshStatus');
+            statusEl.textContent = 'Triggering ' + syncType + ' sync…';
+            ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('Flux/Sync/' + syncType) })
                 .then(function() {
-                    document.getElementById('refreshStatus').textContent =
-                        'Triggered at ' + new Date().toLocaleTimeString() + '. Monitor server logs for progress.';
+                    statusEl.textContent = syncType + ' sync started at ' + new Date().toLocaleTimeString() + '. Refreshing health in 5 s…';
+                    setTimeout(loadLiveHealth, 5000);
                 })
-                .catch(function() {
-                    document.getElementById('refreshStatus').textContent =
-                        'Failed to trigger — is the Flux plugin loaded?';
+                .catch(function(e) {
+                    var msg = (e && e.status) ? 'HTTP ' + e.status : (e && e.message ? e.message : String(e));
+                    statusEl.textContent = 'Failed to trigger: ' + msg;
                 });
         }
-        function renderHealth(providers) {
+        function loadLiveHealth() {
+            ApiClient.getJSON(ApiClient.getUrl('Flux/Health'))
+                .then(function(results) { renderHealth(results); })
+                .catch(function() { /* silently ignore if not yet loaded */ });
+        }
+        function renderHealth(results) {
             var panel = document.getElementById('healthPanel');
-            if (!providers.length) { panel.textContent = 'No providers configured.'; return; }
-            panel.innerHTML = providers.map(function(p) {
-                var c = {Ok:'green',Degraded:'orange',Failed:'red'}[p.Health] || '#888';
-                return '<div style="margin-bottom:.4em"><strong>' + escHtml(p.DisplayName) + '</strong>: '
-                    + '<span style="color:' + c + '">' + escHtml(p.Health || 'Unknown') + '</span>'
-                    + (p.LastError ? ' &mdash; ' + escHtml(p.LastError) : '') + '</div>';
+            if (!results || !results.length) { panel.textContent = 'No providers configured.'; return; }
+            panel.innerHTML = results.map(function(p) {
+                var c = {Ok:'green',Degraded:'orange',Failed:'red'}[p.health] || '#888';
+                var since = p.lastSuccessAt ? ' (last sync: ' + new Date(p.lastSuccessAt).toLocaleString() + ')' : '';
+                return '<div style="margin-bottom:.4em"><strong>' + escHtml(p.displayName) + '</strong>: '
+                    + '<span style="color:' + c + '">' + escHtml(p.health || 'Unknown') + '</span>'
+                    + since
+                    + (p.lastError ? ' &mdash; <span style="color:orange">' + escHtml(p.lastError) + '</span>' : '') + '</div>';
             }).join('');
         }
         var page = document.getElementById('FluxConfigPage');
@@ -269,7 +278,7 @@
         document.getElementById('btnCancelProvider').addEventListener('click', hideProviderForm);
         document.getElementById('btnTestConnection').addEventListener('click', testConnection);
         document.querySelectorAll('.btnManualRefresh').forEach(function(b) {
-            b.addEventListener('click', function() { triggerTask(b.dataset.task); });
+            b.addEventListener('click', function() { triggerSync(b.dataset.sync); });
         });
         document.getElementById('FluxConfigForm').addEventListener('submit', function(e) {
             e.preventDefault();
