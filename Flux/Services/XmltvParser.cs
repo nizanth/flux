@@ -150,38 +150,45 @@ public sealed class XmltvParser
         // Use a subtree reader so we stay scoped to this <programme> element
         using var sub = reader.ReadSubtree();
 
-        // Skip the opening <programme> element itself
+        // Advance past the opening <programme> element itself
+        await sub.ReadAsync().ConfigureAwait(false);
+        // Prime the loop: move to first child node
         await sub.ReadAsync().ConfigureAwait(false);
 
-        while (await sub.ReadAsync().ConfigureAwait(false) && !ct.IsCancellationRequested)
+        // Important: ReadInnerXml() / Skip() already advance the reader past the end
+        // element, so we must NOT call ReadAsync() again after them — we only call it
+        // for non-element nodes (whitespace, end-elements, etc.).
+        while (!sub.EOF && !ct.IsCancellationRequested)
         {
             if (sub.NodeType != XmlNodeType.Element)
             {
+                await sub.ReadAsync().ConfigureAwait(false);
                 continue;
             }
 
             switch (sub.Name)
             {
                 case "title":
-                    programme.Title = StripHtml(sub.ReadElementContentAsString());
+                    // ReadInnerXml handles nested markup (e.g. <b>News</b>) and
+                    // positions the reader at the next sibling — do NOT ReadAsync after.
+                    programme.Title = StripHtml(sub.ReadInnerXml());
                     break;
                 case "sub-title":
-                    programme.SubTitle = StripHtml(sub.ReadElementContentAsString());
+                    programme.SubTitle = StripHtml(sub.ReadInnerXml());
                     break;
                 case "desc":
-                    programme.Description = StripHtml(sub.ReadElementContentAsString());
+                    programme.Description = StripHtml(sub.ReadInnerXml());
                     break;
                 case "category":
-                    programme.Category ??= StripHtml(sub.ReadElementContentAsString());
+                    programme.Category ??= StripHtml(sub.ReadInnerXml());
                     break;
                 case "icon":
                     programme.IconUrl = sub.GetAttribute("src");
                     sub.Skip();
                     break;
                 case "episode-num":
-                    // Prefer xmltv_ns format (S00E00) if present; otherwise take first value
                     var system = sub.GetAttribute("system");
-                    var epNum = sub.ReadElementContentAsString();
+                    var epNum = sub.ReadInnerXml();
                     if (programme.EpisodeNum is null || string.Equals(system, "xmltv_ns", StringComparison.OrdinalIgnoreCase))
                     {
                         programme.EpisodeNum = epNum;
@@ -189,8 +196,9 @@ public sealed class XmltvParser
 
                     break;
                 case "rating":
-                    var ratingValue = ReadChildText(sub, "value");
-                    programme.Rating = ratingValue;
+                    programme.Rating = ReadChildText(sub, "value");
+                    // ReadChildText consumed the subtree via its own sub.ReadSubtree(); skip past </rating>
+                    sub.Skip();
                     break;
                 default:
                     sub.Skip();
