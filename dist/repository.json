@@ -9,6 +9,14 @@
     "owner": "nizanth",
     "versions": [
       {
+        "changelog": "Fix: restore IRequiresMediaInfoCallback on VodChannel (movies broken in v1.1.9); fix SeriesChannel episode ID to use only alphanumeric separators and a fast O(1) GetChannelItemMediaInfo.",
+        "checksum": "dfeb89835c8c82f99298787fc88d697d",
+        "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.10/flux_1.1.10.0.zip",
+        "targetAbi": "10.9.0.0",
+        "timestamp": "2026-05-15T00:00:00Z",
+        "version": "1.1.10.0"
+      },
+      {
         "changelog": "Fix: remove IRequiresMediaInfoCallback; embed stream URLs directly in ChannelItemInfo.MediaSources at item-list time so Jellyfin never needs a callback for series/VOD playback.",
         "checksum": "e2b202a5b648aa5bb8fbe2cab2b1135a",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.9/flux_1.1.9.0.zip",

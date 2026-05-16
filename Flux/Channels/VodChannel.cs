@@ -15,7 +15,7 @@ namespace Jellyfin.Plugin.Flux.Channels;
 /// browse-able virtual channel library. All configured providers are merged into
 /// a single flat list of movies.
 /// </summary>
-public sealed class VodChannel : IChannel
+public sealed class VodChannel : IChannel, IRequiresMediaInfoCallback
 {
     private readonly ProviderRegistry _providerRegistry;
     private readonly CatalogCache _catalogCache;
@@ -87,6 +87,55 @@ public sealed class VodChannel : IChannel
     }
 
     /// <inheritdoc />
+    public Task<IEnumerable<MediaSourceInfo>> GetChannelItemMediaInfo(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        // ID format: "{providerId}_vod_{streamId}"
+        var parts = id.Split("_vod_", 2, StringSplitOptions.None);
+        if (parts.Length != 2 || !Guid.TryParse(parts[0], out var providerId) || !int.TryParse(parts[1], out var streamId))
+        {
+            _logger.LogWarning("VodChannel: could not parse composite ID '{Id}'", id);
+            return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
+        }
+
+        var provider = _providerRegistry.GetById(providerId);
+        if (provider is null)
+        {
+            _logger.LogWarning("VodChannel: provider '{ProviderId}' not found for item '{Id}'", providerId, id);
+            return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
+        }
+
+        var container = "mp4";
+        var catalog = _catalogCache.GetOrCreate(provider.Id);
+        var stream = catalog.VodStreams?.FirstOrDefault(s => s.StreamId == streamId);
+        if (stream is not null && !string.IsNullOrEmpty(stream.ContainerExtension))
+        {
+            container = stream.ContainerExtension;
+        }
+
+        var url = _apiClient.BuildVodStreamUrl(provider, streamId, container);
+
+        IEnumerable<MediaSourceInfo> result = new List<MediaSourceInfo>
+        {
+            new MediaSourceInfo
+            {
+                Id = "0",
+                Path = url,
+                Protocol = MediaProtocol.Http,
+                IsRemote = true,
+                Container = container,
+                Name = stream?.Name ?? id,
+                SupportsDirectPlay = true,
+                SupportsDirectStream = true,
+                SupportsTranscoding = true,
+            },
+        };
+
+        return Task.FromResult(result);
+    }
+
+    /// <inheritdoc />
     public Task<DynamicImageResponse> GetChannelImage(ImageType type, CancellationToken cancellationToken)
         => Task.FromResult(new DynamicImageResponse { HasImage = false });
 
@@ -111,12 +160,6 @@ public sealed class VodChannel : IChannel
 
             foreach (var stream in streams)
             {
-                var container = string.IsNullOrEmpty(stream.ContainerExtension)
-                    ? "mp4"
-                    : stream.ContainerExtension;
-
-                var url = _apiClient.BuildVodStreamUrl(provider, stream.StreamId, container);
-
                 var item = new ChannelItemInfo
                 {
                     Id = $"{provider.Id}_vod_{stream.StreamId}",
@@ -124,22 +167,6 @@ public sealed class VodChannel : IChannel
                     Type = ChannelItemType.Media,
                     MediaType = ChannelMediaType.Video,
                     ContentType = ChannelMediaContentType.Movie,
-                    // Embed the stream URL so Jellyfin has it without a callback.
-                    MediaSources = new List<MediaSourceInfo>
-                    {
-                        new MediaSourceInfo
-                        {
-                            Id = "0",
-                            Path = url,
-                            Protocol = MediaProtocol.Http,
-                            IsRemote = true,
-                            Container = container,
-                            Name = stream.Name,
-                            SupportsDirectPlay = true,
-                            SupportsDirectStream = true,
-                            SupportsTranscoding = true,
-                        },
-                    },
                 };
 
                 if (!string.IsNullOrEmpty(stream.StreamIcon))

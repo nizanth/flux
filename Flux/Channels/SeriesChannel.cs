@@ -14,7 +14,7 @@ namespace Jellyfin.Plugin.Flux.Channels;
 /// Jellyfin IChannel implementation that exposes Xtream Codes series content as a
 /// three-level browse-able hierarchy: Series → Season → Episode.
 /// </summary>
-public sealed class SeriesChannel : IChannel
+public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
 {
     private readonly ProviderRegistry _providerRegistry;
     private readonly CatalogCache _catalogCache;
@@ -149,6 +149,9 @@ public sealed class SeriesChannel : IChannel
                         seriesInfo.Episodes.TryGetValue(seasonKey, out var episodes) &&
                         episodes is not null)
                     {
+                        // Episode ID encodes all info needed to build the URL at playback time:
+                        // "{providerId}_ep_{seriesId}_{episodeId}_{container}"
+                        // Only alphanumeric/hyphen chars — no encoding issues in Jellyfin's ExternalId.
                         var episodeItems = episodes
                             .OrderBy(e => e.EpisodeNum)
                             .Select(ep =>
@@ -156,45 +159,14 @@ public sealed class SeriesChannel : IChannel
                                 var container = string.IsNullOrEmpty(ep.ContainerExtension)
                                     ? "mp4"
                                     : ep.ContainerExtension;
-
-                                var item = new ChannelItemInfo
+                                return new ChannelItemInfo
                                 {
-                                    Id = $"{providerId}_ep_{ep.Id}",
+                                    Id = $"{providerId}_ep_{seriesId}_{ep.Id}_{container}",
                                     Name = ep.Title,
                                     Type = ChannelItemType.Media,
                                     MediaType = ChannelMediaType.Video,
                                     ContentType = ChannelMediaContentType.Episode,
                                 };
-
-                                // Embed the stream URL directly so Jellyfin never needs to call
-                                // back into the plugin for a media source.
-                                if (int.TryParse(ep.Id, out var numericId))
-                                {
-                                    var url = _apiClient.BuildSeriesStreamUrl(provider, numericId, container);
-                                    item.MediaSources = new List<MediaSourceInfo>
-                                    {
-                                        new MediaSourceInfo
-                                        {
-                                            Id = "0",
-                                            Path = url,
-                                            Protocol = MediaProtocol.Http,
-                                            IsRemote = true,
-                                            Container = container,
-                                            Name = ep.Title,
-                                            SupportsDirectPlay = true,
-                                            SupportsDirectStream = true,
-                                            SupportsTranscoding = true,
-                                        },
-                                    };
-                                }
-                                else
-                                {
-                                    _logger.LogWarning(
-                                        "SeriesChannel: episode '{Title}' has non-numeric Id '{EpId}'; skipping media source",
-                                        ep.Title, ep.Id);
-                                }
-
-                                return item;
                             })
                             .ToList();
 
@@ -213,6 +185,60 @@ public sealed class SeriesChannel : IChannel
 
         _logger.LogWarning("SeriesChannel: unknown folder format '{FolderId}'", folderId);
         return new ChannelItemResult { Items = new List<ChannelItemInfo>() };
+    }
+
+    /// <inheritdoc />
+    public Task<IEnumerable<MediaSourceInfo>> GetChannelItemMediaInfo(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        // ID format: "{providerId}_ep_{seriesId}_{episodeId}_{container}"
+        // e.g.  "a1b2c3d4-e5f6-7890-abcd-ef1234567890_ep_100_12345_mkv"
+        // Split on "_ep_" first (2 parts), then split the tail on "_" to get last token as container
+        // and second-to-last as episodeId.
+        var outerParts = id.Split("_ep_", 2, StringSplitOptions.None);
+        if (outerParts.Length != 2 || !Guid.TryParse(outerParts[0], out var providerId))
+        {
+            _logger.LogWarning("SeriesChannel: could not parse ID '{Id}'", id);
+            return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
+        }
+
+        var provider = _providerRegistry.GetById(providerId);
+        if (provider is null)
+        {
+            _logger.LogWarning("SeriesChannel: provider '{ProviderId}' not found", providerId);
+            return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
+        }
+
+        // tail = "{seriesId}_{episodeId}_{container}"
+        var tail = outerParts[1].Split('_');
+        // tail[0] = seriesId, tail[1] = episodeId, tail[2] = container
+        if (tail.Length < 3 || !int.TryParse(tail[1], out var numericEpisodeId))
+        {
+            _logger.LogWarning("SeriesChannel: could not parse episode tail '{Tail}' in '{Id}'", outerParts[1], id);
+            return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
+        }
+
+        var container = tail[2];
+        var url = _apiClient.BuildSeriesStreamUrl(provider, numericEpisodeId, container);
+
+        IEnumerable<MediaSourceInfo> result = new List<MediaSourceInfo>
+        {
+            new MediaSourceInfo
+            {
+                Id = "0",
+                Path = url,
+                Protocol = MediaProtocol.Http,
+                IsRemote = true,
+                Container = container,
+                Name = id,
+                SupportsDirectPlay = true,
+                SupportsDirectStream = true,
+                SupportsTranscoding = true,
+            },
+        };
+
+        return Task.FromResult(result);
     }
 
     /// <inheritdoc />
