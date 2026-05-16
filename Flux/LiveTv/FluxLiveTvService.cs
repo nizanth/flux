@@ -66,6 +66,7 @@ public sealed class FluxLiveTvService : ILiveTvService
         }
 
         var channels = new List<ChannelInfo>();
+        var multiProvider = providers.Count > 1;
 
         foreach (var provider in providers)
         {
@@ -76,8 +77,26 @@ public sealed class FluxLiveTvService : ILiveTvService
                 continue;
             }
 
+            // Build a fast categoryId → name lookup
+            var categoryNames = catalog.LiveCategories?
+                .ToDictionary(c => c.CategoryId, c => c.CategoryName, StringComparer.OrdinalIgnoreCase)
+                ?? new Dictionary<string, string>();
+
             foreach (var stream in streams)
             {
+                var groupName = stream.CategoryId is not null &&
+                                categoryNames.TryGetValue(stream.CategoryId, out var catName)
+                    ? catName
+                    : stream.CategoryId ?? string.Empty;
+
+                // Prefix with provider name when multiple providers are configured
+                if (multiProvider)
+                {
+                    groupName = string.IsNullOrEmpty(groupName)
+                        ? provider.DisplayName
+                        : $"{provider.DisplayName} — {groupName}";
+                }
+
                 channels.Add(new ChannelInfo
                 {
                     Id = $"{provider.Id}_{stream.StreamId}",
@@ -86,7 +105,7 @@ public sealed class FluxLiveTvService : ILiveTvService
                     ImageUrl = string.IsNullOrEmpty(stream.StreamIcon) ? null : stream.StreamIcon,
                     HasImage = !string.IsNullOrEmpty(stream.StreamIcon),
                     ChannelType = ChannelType.TV,
-                    ChannelGroup = stream.CategoryId ?? string.Empty,
+                    ChannelGroup = groupName,
                 });
             }
         }

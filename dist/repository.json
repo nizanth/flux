@@ -9,6 +9,14 @@
     "owner": "nizanth",
     "versions": [
       {
+        "changelog": "Feature: Live TV channels now grouped by provider category name (ChannelGroup) so Jellyfin's channel browser reflects the source folder structure; multi-provider setups prefix group names with the provider display name.",
+        "checksum": "6184cbe152b51f77e0afd1cae0c9b16c",
+        "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.22/flux_1.1.22.0.zip",
+        "targetAbi": "10.9.0.0",
+        "timestamp": "2026-05-16T00:00:00Z",
+        "version": "1.1.22.0"
+      },
+      {
         "changelog": "Fix: Live TV now syncs on-demand the first time GetChannelsAsync is called if the catalog is empty, avoiding the race where Jellyfin queries channels before the 15-second startup sync completes; also fixed timer methods to return gracefully instead of throwing NotSupportedException.",
         "checksum": "6c17e0ea2044d355bcdd681e582ece41",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.21/flux_1.1.21.0.zip",
