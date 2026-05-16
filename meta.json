@@ -1,0 +1,13 @@
+{
+  "category": "Live TV",
+  "changelog": "Initial release: live channels, EPG, VOD, series, catch-up.",
+  "description": "Connects Jellyfin to any Xtream Codes IPTV provider. Surfaces live channels with EPG guide, VOD movies, and series as native Jellyfin content. Supports catch-up TV for compatible channels.",
+  "guid": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "imageUrl": "",
+  "name": "Flux - Xtream Codes Client",
+  "overview": "Xtream Codes IPTV client plugin for Jellyfin — live TV, EPG, VOD, and series.",
+  "owner": "nizanth",
+  "targetAbi": "10.9.0.0",
+  "timestamp": "2026-05-15T00:00:00Z",
+  "version": "1.0.0.0"
+}
