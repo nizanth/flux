@@ -9,6 +9,14 @@
     "owner": "nizanth",
     "versions": [
       {
+        "changelog": "Fix: remove FolderType=Series and FolderType=Season from intermediate series/season folder items so they become plain generic folders — preserves ChannelId association on child episode items so Jellyfin correctly invokes GetChannelItemMediaInfo and series playback works.",
+        "checksum": "24909009e379d452f36da51eccb09672",
+        "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.18/flux_1.1.18.0.zip",
+        "targetAbi": "10.9.0.0",
+        "timestamp": "2026-05-16T00:00:00Z",
+        "version": "1.1.18.0"
+      },
+      {
         "changelog": "Diagnostic: add Information-level logging to GetChannelItemMediaInfo to confirm callback invocation, received id, parsed tail parts, and resolved URL — check Jellyfin server logs after attempting series playback.",
         "checksum": "9660a53b78cc7926d31ce2607c63e84e",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.17/flux_1.1.17.0.zip",

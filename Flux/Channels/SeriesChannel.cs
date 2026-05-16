@@ -131,7 +131,6 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
                                 Id = $"season:{providerId}:{seriesId}:{seasonKey}",
                                 Name = $"Season {seasonKey}",
                                 Type = ChannelItemType.Folder,
-                                FolderType = ChannelFolderType.Season,
                             })
                             .ToList();
 
@@ -348,7 +347,6 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
                 Id = $"series:{provider.Id}:{series.SeriesId}",
                 Name = series.Name,
                 Type = ChannelItemType.Folder,
-                FolderType = ChannelFolderType.Series,
             };
 
             if (!string.IsNullOrEmpty(series.Cover))
@@ -379,7 +377,6 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
                 Id = $"series:{provider.Id}:{series.SeriesId}",
                 Name = series.Name,
                 Type = ChannelItemType.Folder,
-                FolderType = ChannelFolderType.Series,
             };
 
             if (!string.IsNullOrEmpty(series.Cover))
