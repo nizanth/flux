@@ -14,7 +14,7 @@ namespace Jellyfin.Plugin.Flux.Channels;
 /// Jellyfin IChannel implementation that exposes Xtream Codes series content as a
 /// three-level browse-able hierarchy: Series → Season → Episode.
 /// </summary>
-public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
+public sealed class SeriesChannel : IChannel
 {
     private readonly ProviderRegistry _providerRegistry;
     private readonly CatalogCache _catalogCache;
@@ -22,14 +22,7 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
     private readonly SeriesMetadataService _metadataService;
     private readonly ILogger<SeriesChannel> _logger;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="SeriesChannel"/> class.
-    /// </summary>
-    /// <param name="providerRegistry">Registry of configured Xtream Codes providers.</param>
-    /// <param name="catalogCache">In-memory catalog cache holding series stream data.</param>
-    /// <param name="apiClient">Xtream Codes HTTP API client.</param>
-    /// <param name="metadataService">Series metadata / episode info cache service.</param>
-    /// <param name="logger">Logger instance.</param>
+    /// <summary>Initializes a new instance of the <see cref="SeriesChannel"/> class.</summary>
     public SeriesChannel(
         ProviderRegistry providerRegistry,
         CatalogCache catalogCache,
@@ -91,13 +84,8 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
 
         if (string.IsNullOrEmpty(folderId))
         {
-            // Top level — list all series as folders
             var items = BuildSeriesItems();
-            return new ChannelItemResult
-            {
-                Items = items,
-                TotalRecordCount = items.Count,
-            };
+            return new ChannelItemResult { Items = items, TotalRecordCount = items.Count };
         }
 
         if (folderId.StartsWith("series:", StringComparison.Ordinal))
@@ -143,7 +131,7 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
 
         if (folderId.StartsWith("season:", StringComparison.Ordinal))
         {
-            // Format: season:{providerId}:{seriesId}:{seasonNumber}
+            // Format: season:{providerId}:{seriesId}:{seasonKey}
             var parts = folderId.Split(':', 4);
             if (parts.Length == 4 &&
                 Guid.TryParse(parts[1], out var providerId) &&
@@ -163,15 +151,50 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
                     {
                         var episodeItems = episodes
                             .OrderBy(e => e.EpisodeNum)
-                            .Select(ep => new ChannelItemInfo
+                            .Select(ep =>
                             {
-                                // Encode seriesId|episodeId|container so GetChannelItemMediaInfo
-                                // can build the URL without iterating all series.
-                                Id = $"{providerId}_ep_{seriesId}|{ep.Id}|{ep.ContainerExtension}",
-                                Name = ep.Title,
-                                Type = ChannelItemType.Media,
-                                MediaType = ChannelMediaType.Video,
-                                ContentType = ChannelMediaContentType.Episode,
+                                var container = string.IsNullOrEmpty(ep.ContainerExtension)
+                                    ? "mp4"
+                                    : ep.ContainerExtension;
+
+                                var item = new ChannelItemInfo
+                                {
+                                    Id = $"{providerId}_ep_{ep.Id}",
+                                    Name = ep.Title,
+                                    Type = ChannelItemType.Media,
+                                    MediaType = ChannelMediaType.Video,
+                                    ContentType = ChannelMediaContentType.Episode,
+                                };
+
+                                // Embed the stream URL directly so Jellyfin never needs to call
+                                // back into the plugin for a media source.
+                                if (int.TryParse(ep.Id, out var numericId))
+                                {
+                                    var url = _apiClient.BuildSeriesStreamUrl(provider, numericId, container);
+                                    item.MediaSources = new List<MediaSourceInfo>
+                                    {
+                                        new MediaSourceInfo
+                                        {
+                                            Id = "0",
+                                            Path = url,
+                                            Protocol = MediaProtocol.Http,
+                                            IsRemote = true,
+                                            Container = container,
+                                            Name = ep.Title,
+                                            SupportsDirectPlay = true,
+                                            SupportsDirectStream = true,
+                                            SupportsTranscoding = true,
+                                        },
+                                    };
+                                }
+                                else
+                                {
+                                    _logger.LogWarning(
+                                        "SeriesChannel: episode '{Title}' has non-numeric Id '{EpId}'; skipping media source",
+                                        ep.Title, ep.Id);
+                                }
+
+                                return item;
                             })
                             .ToList();
 
@@ -193,108 +216,12 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
     }
 
     /// <inheritdoc />
-    public async Task<IEnumerable<MediaSourceInfo>> GetChannelItemMediaInfo(
-        string id,
-        CancellationToken cancellationToken)
-    {
-        // Composite ID: "{providerId}_ep_{seriesId}|{episodeId}|{container}"  (v1.1.7+)
-        //           or: "{providerId}_ep_{episodeId}"                          (pre-v1.1.7)
-        var outerParts = id.Split("_ep_", 2, StringSplitOptions.None);
-        if (outerParts.Length != 2 || !Guid.TryParse(outerParts[0], out var providerId))
-        {
-            _logger.LogWarning("SeriesChannel: could not parse composite ID '{Id}'", id);
-            return Enumerable.Empty<MediaSourceInfo>();
-        }
-
-        var provider = _providerRegistry.GetById(providerId);
-        if (provider is null)
-        {
-            _logger.LogWarning("SeriesChannel: provider '{ProviderId}' not found for item '{Id}'", providerId, id);
-            return Enumerable.Empty<MediaSourceInfo>();
-        }
-
-        var segment = outerParts[1];
-        int numericEpisodeId;
-        string container;
-        int seriesId = -1;
-        string episodeIdStr;
-
-        var innerParts = segment.Split('|');
-        if (innerParts.Length >= 2
-            && int.TryParse(innerParts[0], out seriesId)
-            && int.TryParse(innerParts[1], out numericEpisodeId))
-        {
-            // New format: {seriesId}|{episodeId}|{container}
-            episodeIdStr = innerParts[1];
-            container = innerParts.Length > 2 && !string.IsNullOrEmpty(innerParts[2])
-                ? innerParts[2]
-                : "mp4";
-        }
-        else if (int.TryParse(segment, out numericEpisodeId))
-        {
-            // Old format: just {episodeId}
-            episodeIdStr = segment;
-            container = "mp4";
-        }
-        else
-        {
-            _logger.LogWarning("SeriesChannel: cannot parse episode segment '{Segment}' in '{Id}'", segment, id);
-            return Enumerable.Empty<MediaSourceInfo>();
-        }
-
-        // Fetch episode title — best-effort only, never blocks playback on failure.
-        var episodeName = numericEpisodeId.ToString(System.Globalization.CultureInfo.InvariantCulture);
-        if (seriesId > 0)
-        {
-            try
-            {
-                var seriesInfo = await _metadataService
-                    .GetOrFetchInfoAsync(provider, seriesId, cancellationToken)
-                    .ConfigureAwait(false);
-
-                var ep = seriesInfo?.Episodes?.Values
-                    .SelectMany(eps => eps)
-                    .FirstOrDefault(e => e.Id == episodeIdStr);
-                if (ep is not null)
-                {
-                    episodeName = ep.Title;
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "SeriesChannel: metadata lookup failed for series {SeriesId}", seriesId);
-            }
-        }
-
-        var url = _apiClient.BuildSeriesStreamUrl(provider, numericEpisodeId, container);
-        _logger.LogDebug("SeriesChannel: serving episode {EpisodeId} → {Url}", numericEpisodeId, url);
-
-        return new List<MediaSourceInfo>
-        {
-            new MediaSourceInfo
-            {
-                Path = url,
-                Protocol = MediaProtocol.Http,
-                IsRemote = true,
-                Container = container,
-                Id = id,
-                Name = episodeName,
-                SupportsDirectPlay = true,
-                SupportsDirectStream = true,
-                SupportsTranscoding = true,
-            },
-        };
-    }
-
-    /// <inheritdoc />
     public Task<DynamicImageResponse> GetChannelImage(ImageType type, CancellationToken cancellationToken)
         => Task.FromResult(new DynamicImageResponse { HasImage = false });
 
     /// <inheritdoc />
     public IEnumerable<ImageType> GetSupportedChannelImages()
         => Enumerable.Empty<ImageType>();
-
-    // ── Private helpers ───────────────────────────────────────────────────────
 
     private List<ChannelItemInfo> BuildSeriesItems()
     {
@@ -307,9 +234,7 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
 
             if (seriesList is null || seriesList.Count == 0)
             {
-                _logger.LogDebug(
-                    "No series cached for provider '{Provider}'; skipping.",
-                    provider.DisplayName);
+                _logger.LogDebug("No series cached for provider '{Provider}'; skipping.", provider.DisplayName);
                 continue;
             }
 

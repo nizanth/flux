@@ -15,20 +15,14 @@ namespace Jellyfin.Plugin.Flux.Channels;
 /// browse-able virtual channel library. All configured providers are merged into
 /// a single flat list of movies.
 /// </summary>
-public sealed class VodChannel : IChannel, IRequiresMediaInfoCallback
+public sealed class VodChannel : IChannel
 {
     private readonly ProviderRegistry _providerRegistry;
     private readonly CatalogCache _catalogCache;
     private readonly XtreamApiClient _apiClient;
     private readonly ILogger<VodChannel> _logger;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="VodChannel"/> class.
-    /// </summary>
-    /// <param name="providerRegistry">Registry of configured Xtream Codes providers.</param>
-    /// <param name="catalogCache">In-memory catalog cache holding VOD stream data.</param>
-    /// <param name="apiClient">Xtream Codes HTTP API client.</param>
-    /// <param name="logger">Logger instance.</param>
+    /// <summary>Initializes a new instance of the <see cref="VodChannel"/> class.</summary>
     public VodChannel(
         ProviderRegistry providerRegistry,
         CatalogCache catalogCache,
@@ -93,64 +87,12 @@ public sealed class VodChannel : IChannel, IRequiresMediaInfoCallback
     }
 
     /// <inheritdoc />
-    public Task<IEnumerable<MediaSourceInfo>> GetChannelItemMediaInfo(
-        string id,
-        CancellationToken cancellationToken)
-    {
-        // Composite ID format: "{providerId}_vod_{streamId}"
-        var parts = id.Split("_vod_", 2, StringSplitOptions.None);
-        if (parts.Length != 2 || !Guid.TryParse(parts[0], out var providerId) || !int.TryParse(parts[1], out var streamId))
-        {
-            _logger.LogWarning("VodChannel: could not parse composite ID '{Id}'", id);
-            return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
-        }
-
-        var provider = _providerRegistry.GetById(providerId);
-        if (provider is null)
-        {
-            _logger.LogWarning("VodChannel: provider '{ProviderId}' not found for item '{Id}'", providerId, id);
-            return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
-        }
-
-        // Determine container extension from cached catalog if available
-        var container = "mp4";
-        var catalog = _catalogCache.GetOrCreate(provider.Id);
-        var stream = catalog.VodStreams?.FirstOrDefault(s => s.StreamId == streamId);
-        if (stream is not null && !string.IsNullOrEmpty(stream.ContainerExtension))
-        {
-            container = stream.ContainerExtension;
-        }
-
-        var url = _apiClient.BuildVodStreamUrl(provider, streamId, container);
-
-        IEnumerable<MediaSourceInfo> result = new List<MediaSourceInfo>
-        {
-            new MediaSourceInfo
-            {
-                Path = url,
-                Protocol = MediaProtocol.Http,
-                IsRemote = true,
-                Container = container,
-                Id = id,
-                Name = stream?.Name ?? id,
-                SupportsDirectPlay = true,
-                SupportsDirectStream = true,
-                SupportsTranscoding = true,
-            },
-        };
-
-        return Task.FromResult(result);
-    }
-
-    /// <inheritdoc />
     public Task<DynamicImageResponse> GetChannelImage(ImageType type, CancellationToken cancellationToken)
         => Task.FromResult(new DynamicImageResponse { HasImage = false });
 
     /// <inheritdoc />
     public IEnumerable<ImageType> GetSupportedChannelImages()
         => Enumerable.Empty<ImageType>();
-
-    // ── Private helpers ───────────────────────────────────────────────────────
 
     private List<ChannelItemInfo> BuildVodItems()
     {
@@ -163,14 +105,18 @@ public sealed class VodChannel : IChannel, IRequiresMediaInfoCallback
 
             if (streams is null || streams.Count == 0)
             {
-                _logger.LogDebug(
-                    "No VOD streams cached for provider '{Provider}'; skipping.",
-                    provider.DisplayName);
+                _logger.LogDebug("No VOD streams cached for provider '{Provider}'; skipping.", provider.DisplayName);
                 continue;
             }
 
             foreach (var stream in streams)
             {
+                var container = string.IsNullOrEmpty(stream.ContainerExtension)
+                    ? "mp4"
+                    : stream.ContainerExtension;
+
+                var url = _apiClient.BuildVodStreamUrl(provider, stream.StreamId, container);
+
                 var item = new ChannelItemInfo
                 {
                     Id = $"{provider.Id}_vod_{stream.StreamId}",
@@ -178,7 +124,22 @@ public sealed class VodChannel : IChannel, IRequiresMediaInfoCallback
                     Type = ChannelItemType.Media,
                     MediaType = ChannelMediaType.Video,
                     ContentType = ChannelMediaContentType.Movie,
-                    Tags = new List<string> { stream.CategoryId ?? string.Empty },
+                    // Embed the stream URL so Jellyfin has it without a callback.
+                    MediaSources = new List<MediaSourceInfo>
+                    {
+                        new MediaSourceInfo
+                        {
+                            Id = "0",
+                            Path = url,
+                            Protocol = MediaProtocol.Http,
+                            IsRemote = true,
+                            Container = container,
+                            Name = stream.Name,
+                            SupportsDirectPlay = true,
+                            SupportsDirectStream = true,
+                            SupportsTranscoding = true,
+                        },
+                    },
                 };
 
                 if (!string.IsNullOrEmpty(stream.StreamIcon))
