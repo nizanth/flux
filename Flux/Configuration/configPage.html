@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <title>Flux - Xtream Codes Client</title>
+    <link rel="stylesheet" href="css/form-helper.css" />
+</head>
+<body>
+<div id="fluxConfigPage" data-role="page" class="page type-interior pluginConfigurationPage" data-require="emby-input,emby-button,emby-checkbox">
+
+    <div data-role="content">
+        <div class="content-primary">
+
+            <form id="fluxConfigForm">
+
+                <div class="sectionTitleContainer flex align-items-center">
+                    <h2 class="sectionTitle">Flux - Xtream Codes Client</h2>
+                </div>
+
+                <p>Configure your Xtream Codes IPTV providers below. Each provider requires a base URL, username, and password from your IPTV subscription.</p>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="liveChannelRefreshHours">Live Channel Refresh Interval (hours)</label>
+                    <input id="liveChannelRefreshHours" name="LiveChannelRefreshHours" type="number" min="1" max="168" is="emby-input" />
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="epgRefreshHours">EPG Refresh Interval (hours)</label>
+                    <input id="epgRefreshHours" name="EpgRefreshHours" type="number" min="1" max="168" is="emby-input" />
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="vodRefreshHours">VOD Refresh Interval (hours)</label>
+                    <input id="vodRefreshHours" name="VodRefreshHours" type="number" min="1" max="168" is="emby-input" />
+                </div>
+
+                <div class="inputContainer">
+                    <label class="inputLabel inputLabelUnfocused" for="seriesRefreshHours">Series Refresh Interval (hours)</label>
+                    <input id="seriesRefreshHours" name="SeriesRefreshHours" type="number" min="1" max="168" is="emby-input" />
+                </div>
+
+                <div class="sectionTitleContainer flex align-items-center">
+                    <h2 class="sectionTitle">Providers</h2>
+                </div>
+
+                <div id="providerList"></div>
+
+                <button id="btnAddProvider" is="emby-button" type="button" class="raised">Add Provider</button>
+
+                <div>
+                    <button is="emby-button" type="submit" class="raised button-submit block">
+                        <span>Save</span>
+                    </button>
+                </div>
+
+            </form>
+
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        (function () {
+            var pluginId = 'a1b2c3d4-e5f6-7890-abcd-ef1234567890';
+
+            ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                document.getElementById('liveChannelRefreshHours').value = config.LiveChannelRefreshHours || 12;
+                document.getElementById('epgRefreshHours').value = config.EpgRefreshHours || 6;
+                document.getElementById('vodRefreshHours').value = config.VodRefreshHours || 24;
+                document.getElementById('seriesRefreshHours').value = config.SeriesRefreshHours || 24;
+                renderProviders(config.Providers || []);
+            });
+
+            function renderProviders(providers) {
+                var list = document.getElementById('providerList');
+                list.innerHTML = '';
+                providers.forEach(function (p, i) {
+                    list.innerHTML += '<div class="providerEntry" data-index="' + i + '">' +
+                        '<h3>' + (p.DisplayName || 'Provider ' + (i + 1)) + '</h3>' +
+                        '<div class="inputContainer"><label>Display Name</label>' +
+                        '<input type="text" name="DisplayName_' + i + '" value="' + (p.DisplayName || '') + '" is="emby-input" /></div>' +
+                        '<div class="inputContainer"><label>Base URL</label>' +
+                        '<input type="url" name="BaseUrl_' + i + '" value="' + (p.BaseUrl || '') + '" is="emby-input" /></div>' +
+                        '<div class="inputContainer"><label>Username</label>' +
+                        '<input type="text" name="Username_' + i + '" value="' + (p.Username || '') + '" is="emby-input" /></div>' +
+                        '<div class="inputContainer"><label>Password</label>' +
+                        '<input type="password" name="Password_' + i + '" placeholder="(unchanged)" is="emby-input" /></div>' +
+                        '</div>';
+                });
+            }
+
+            document.getElementById('btnAddProvider').addEventListener('click', function () {
+                Dashboard.alert('Provider management UI coming soon. Use the API to add providers.');
+            });
+
+            document.getElementById('fluxConfigForm').addEventListener('submit', function (e) {
+                e.preventDefault();
+                ApiClient.getPluginConfiguration(pluginId).then(function (config) {
+                    config.LiveChannelRefreshHours = parseInt(document.getElementById('liveChannelRefreshHours').value, 10);
+                    config.EpgRefreshHours = parseInt(document.getElementById('epgRefreshHours').value, 10);
+                    config.VodRefreshHours = parseInt(document.getElementById('vodRefreshHours').value, 10);
+                    config.SeriesRefreshHours = parseInt(document.getElementById('seriesRefreshHours').value, 10);
+                    ApiClient.updatePluginConfiguration(pluginId, config).then(function () {
+                        Dashboard.processPluginConfigurationUpdateResult();
+                    });
+                });
+            });
+        })();
+    </script>
+
+</div>
+</body>
+</html>

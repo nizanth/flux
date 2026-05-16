@@ -1,0 +1,28 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Flux", "Flux\Flux.csproj", "{0117E324-EDE3-4536-85E8-AA0A71EFA743}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Flux.Tests", "Flux.Tests\Flux.Tests.csproj", "{DDCA0454-94EB-4994-AA7C-B9BB19E1E471}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{0117E324-EDE3-4536-85E8-AA0A71EFA743}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{0117E324-EDE3-4536-85E8-AA0A71EFA743}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{0117E324-EDE3-4536-85E8-AA0A71EFA743}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{0117E324-EDE3-4536-85E8-AA0A71EFA743}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DDCA0454-94EB-4994-AA7C-B9BB19E1E471}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DDCA0454-94EB-4994-AA7C-B9BB19E1E471}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DDCA0454-94EB-4994-AA7C-B9BB19E1E471}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DDCA0454-94EB-4994-AA7C-B9BB19E1E471}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+EndGlobal
