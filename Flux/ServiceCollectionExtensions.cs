@@ -1,5 +1,7 @@
 using Jellyfin.Plugin.Flux.Api;
+using Jellyfin.Plugin.Flux.LiveTv;
 using Jellyfin.Plugin.Flux.Services;
+using MediaBrowser.Controller.LiveTv;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace Jellyfin.Plugin.Flux;
@@ -21,6 +23,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<XtreamApiClient>();
         services.AddSingleton<XmltvParser>();
         services.AddSingleton<CatalogSyncService>();
+        services.AddSingleton<ProviderRegistry>();
+        services.AddSingleton<ILiveTvService, FluxLiveTvService>();
         return services;
     }
 }
