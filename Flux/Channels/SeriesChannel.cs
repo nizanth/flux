@@ -16,7 +16,7 @@ namespace Jellyfin.Plugin.Flux.Channels;
 /// Episodes are surfaced as Movie-typed items so Jellyfin uses the stored MediaSources
 /// path, which works reliably in Jellyfin 10.9.
 /// </summary>
-public sealed class SeriesChannel : IChannel
+public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
 {
     private readonly ProviderRegistry _providerRegistry;
     private readonly CatalogCache _catalogCache;
@@ -218,6 +218,57 @@ public sealed class SeriesChannel : IChannel
 
         _logger.LogWarning("SeriesChannel: unknown folder format '{FolderId}'", folderId);
         return new ChannelItemResult { Items = new List<ChannelItemInfo>() };
+    }
+
+    /// <inheritdoc />
+    public Task<IEnumerable<MediaSourceInfo>> GetChannelItemMediaInfo(
+        string id,
+        CancellationToken cancellationToken)
+    {
+        // ID format: "{providerId}_ep_{seriesId}_{episodeId}_{container}"
+        var outerParts = id.Split("_ep_", 2, StringSplitOptions.None);
+        if (outerParts.Length != 2 || !Guid.TryParse(outerParts[0], out var providerId))
+        {
+            _logger.LogWarning("SeriesChannel: could not parse ID '{Id}'", id);
+            return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
+        }
+
+        var provider = _providerRegistry.GetById(providerId);
+        if (provider is null)
+        {
+            _logger.LogWarning("SeriesChannel: provider '{ProviderId}' not found", providerId);
+            return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
+        }
+
+        // tail = "{seriesId}_{episodeId}_{container}"
+        var tail = outerParts[1].Split('_');
+        if (tail.Length < 3 || string.IsNullOrEmpty(tail[1]))
+        {
+            _logger.LogWarning("SeriesChannel: could not parse episode tail '{Tail}' in '{Id}'", outerParts[1], id);
+            return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
+        }
+
+        var episodeId = tail[1];
+        var container = tail[2];
+        var url = _apiClient.BuildSeriesStreamUrl(provider, episodeId, container);
+
+        IEnumerable<MediaSourceInfo> result = new List<MediaSourceInfo>
+        {
+            new MediaSourceInfo
+            {
+                Id = id,
+                Path = url,
+                Protocol = MediaProtocol.Http,
+                IsRemote = true,
+                Container = container,
+                Name = id,
+                SupportsDirectPlay = true,
+                SupportsDirectStream = true,
+                SupportsTranscoding = true,
+            },
+        };
+
+        return Task.FromResult(result);
     }
 
     /// <inheritdoc />
