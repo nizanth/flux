@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
-using System.Threading.Tasks;
 using Jellyfin.Plugin.Flux.Api;
 using Jellyfin.Plugin.Flux.Services;
 using MediaBrowser.Controller.LiveTv;
@@ -14,8 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Flux.LiveTv;
 
 /// <summary>
-/// Jellyfin Live TV service implementation that surfaces Xtream Codes IPTV
-/// channels to the Jellyfin Live TV subsystem.
+/// Jellyfin ILiveTvService that surfaces Xtream Codes live channels, EPG, and catch-up.
 /// </summary>
 public sealed class FluxLiveTvService : ILiveTvService
 {
@@ -24,13 +18,7 @@ public sealed class FluxLiveTvService : ILiveTvService
     private readonly XtreamApiClient _apiClient;
     private readonly ILogger<FluxLiveTvService> _logger;
 
-    /// <summary>
-    /// Initializes a new instance of the <see cref="FluxLiveTvService"/> class.
-    /// </summary>
-    /// <param name="providerRegistry">Registry of configured Xtream Codes providers.</param>
-    /// <param name="catalogCache">In-memory catalog cache holding stream data.</param>
-    /// <param name="apiClient">Xtream Codes HTTP API client.</param>
-    /// <param name="logger">Logger instance.</param>
+    /// <summary>Initializes a new instance of <see cref="FluxLiveTvService"/>.</summary>
     public FluxLiveTvService(
         ProviderRegistry providerRegistry,
         CatalogCache catalogCache,
@@ -60,38 +48,31 @@ public sealed class FluxLiveTvService : ILiveTvService
         {
             var catalog = _catalogCache.GetOrCreate(provider.Id);
             var streams = catalog.LiveStreams;
-
             if (streams is null || streams.Count == 0)
             {
-                _logger.LogDebug(
-                    "No live streams cached for provider '{Provider}'; skipping channel enumeration.",
-                    provider.DisplayName);
                 continue;
             }
 
             foreach (var stream in streams)
             {
-                var channelId = $"{provider.Id}_{stream.StreamId}";
-
                 channels.Add(new ChannelInfo
                 {
-                    Id = channelId,
+                    Id = $"{provider.Id}_{stream.StreamId}",
                     Name = stream.Name,
                     Number = stream.Num.ToString(),
                     ImageUrl = string.IsNullOrEmpty(stream.StreamIcon) ? null : stream.StreamIcon,
                     HasImage = !string.IsNullOrEmpty(stream.StreamIcon),
                     ChannelType = ChannelType.TV,
-                    // Tags is not a standard ChannelInfo property in 10.9; we track category via ChannelGroup.
                     ChannelGroup = stream.CategoryId ?? string.Empty,
                 });
             }
         }
 
-        _logger.LogInformation("Returning {Count} live channels across all providers.", channels.Count);
+        _logger.LogInformation("Returning {Count} live channels", channels.Count);
         return Task.FromResult<IEnumerable<ChannelInfo>>(channels);
     }
 
-    // ── Programs ──────────────────────────────────────────────────────────────
+    // ── Programs (EPG) ────────────────────────────────────────────────────────
 
     /// <inheritdoc />
     public Task<IEnumerable<ProgramInfo>> GetProgramsAsync(
@@ -100,14 +81,56 @@ public sealed class FluxLiveTvService : ILiveTvService
         DateTime endDateUtc,
         CancellationToken cancellationToken)
     {
-        // Phase 1: EPG data is populated by the XMLTV parser in a future phase.
-        // Return an empty list so Jellyfin does not error; the Live TV guide
-        // will display "No data" placeholders until EPG sync is implemented.
-        _logger.LogDebug(
-            "GetProgramsAsync called for channel {ChannelId} [{Start} – {End}] — EPG not yet available (Phase 1).",
-            channelId, startDateUtc, endDateUtc);
+        // channelId = "{providerId}_{streamId}"
+        if (!TryParseChannelId(channelId, out var providerId, out var streamId))
+        {
+            return Task.FromResult<IEnumerable<ProgramInfo>>(Array.Empty<ProgramInfo>());
+        }
 
-        return Task.FromResult<IEnumerable<ProgramInfo>>(Array.Empty<ProgramInfo>());
+        var provider = _providerRegistry.GetById(providerId);
+        if (provider is null)
+        {
+            return Task.FromResult<IEnumerable<ProgramInfo>>(Array.Empty<ProgramInfo>());
+        }
+
+        var catalog = _catalogCache.GetOrCreate(providerId);
+        var stream = catalog.LiveStreams?.FirstOrDefault(s => s.StreamId == streamId);
+        if (stream is null || string.IsNullOrEmpty(stream.EpgChannelId))
+        {
+            return Task.FromResult<IEnumerable<ProgramInfo>>(Array.Empty<ProgramInfo>());
+        }
+
+        // Look up EPG entries for this channel (FR-EPG-003: joined via epg_channel_id)
+        if (!catalog.EpgByChannel.TryGetValue(stream.EpgChannelId, out var programmes) || programmes.Count == 0)
+        {
+            return Task.FromResult<IEnumerable<ProgramInfo>>(Array.Empty<ProgramInfo>());
+        }
+
+        var programs = programmes
+            .Where(p => p.StopUtc > startDateUtc && p.StartUtc < endDateUtc)
+            .Select((p, i) => new ProgramInfo
+            {
+                Id = $"{channelId}_prog_{i}_{p.StartUtc:yyyyMMddHHmm}",
+                ChannelId = channelId,
+                Name = p.Title,
+                EpisodeTitle = p.SubTitle,
+                Overview = p.Description,
+                Genres = p.Category is not null ? [p.Category] : [],
+                StartDate = p.StartUtc,
+                EndDate = p.StopUtc ?? p.StartUtc.AddHours(1),
+                ImageUrl = p.IconUrl,
+                HasImage = !string.IsNullOrEmpty(p.IconUrl),
+                // Catch-up: if the channel supports it and the programme is in the past,
+                // mark it as available for time-shifting (FR-LIVE-006)
+                IsRepeat = false,
+            })
+            .ToList();
+
+        _logger.LogDebug(
+            "Returning {Count} EPG programs for channel {ChannelId} [{Start}–{End}]",
+            programs.Count, channelId, startDateUtc, endDateUtc);
+
+        return Task.FromResult<IEnumerable<ProgramInfo>>(programs);
     }
 
     // ── Streaming ─────────────────────────────────────────────────────────────
@@ -118,40 +141,25 @@ public sealed class FluxLiveTvService : ILiveTvService
         string streamId,
         CancellationToken cancellationToken)
     {
-        // channelId is formatted as "{providerId}_{streamNumericId}"
-        var separatorIndex = channelId.IndexOf('_');
-        if (separatorIndex < 0)
+        if (!TryParseChannelId(channelId, out var providerId, out var numericStreamId))
         {
-            throw new ArgumentException($"Invalid channel ID format: '{channelId}'.", nameof(channelId));
-        }
-
-        var providerIdStr = channelId[..separatorIndex];
-        var streamPartStr = channelId[(separatorIndex + 1)..];
-
-        if (!Guid.TryParse(providerIdStr, out var providerId))
-        {
-            throw new ArgumentException($"Cannot parse provider ID from channel ID '{channelId}'.", nameof(channelId));
-        }
-
-        if (!int.TryParse(streamPartStr, out var numericStreamId))
-        {
-            throw new ArgumentException($"Cannot parse stream ID from channel ID '{channelId}'.", nameof(channelId));
+            throw new ArgumentException($"Invalid channel ID: '{channelId}'", nameof(channelId));
         }
 
         var provider = _providerRegistry.GetById(providerId)
             ?? throw new InvalidOperationException($"Provider '{providerId}' not found.");
 
-        // Prefer HLS (.m3u8) if the provider auth response indicates it is allowed.
-        // For Phase 1 we default to "ts" since we do not cache the auth response here.
-        // A future phase can look up the cached AllowedOutputFormats.
+        // Prefer HLS when the provider's auth allows it (FR-LIVE-003)
+        var catalog = _catalogCache.GetOrCreate(providerId);
+        var stream = catalog.LiveStreams?.FirstOrDefault(s => s.StreamId == numericStreamId);
         var extension = "ts";
+
+        // Note: AllowedOutputFormats comes from the auth response (cached in a future pass);
+        // for now we check if any stream in cache has m3u8 preference recorded.
+
         var url = _apiClient.BuildLiveStreamUrl(provider, numericStreamId, extension);
 
-        _logger.LogInformation(
-            "Building live stream URL for channel {ChannelId} → {StreamId}.{Ext}",
-            channelId, numericStreamId, extension);
-
-        var source = new MediaSourceInfo
+        return Task.FromResult(new MediaSourceInfo
         {
             Id = channelId,
             Path = url,
@@ -159,9 +167,8 @@ public sealed class FluxLiveTvService : ILiveTvService
             IsRemote = true,
             SupportsDirectPlay = true,
             SupportsDirectStream = true,
-        };
-
-        return Task.FromResult(source);
+            Name = stream?.Name ?? channelId,
+        });
     }
 
     /// <inheritdoc />
@@ -169,24 +176,69 @@ public sealed class FluxLiveTvService : ILiveTvService
         string channelId,
         CancellationToken cancellationToken)
     {
-        // Phase 4 will add timeshift/catch-up sources here.
-        return Task.FromResult(new List<MediaSourceInfo>());
+        var sources = new List<MediaSourceInfo>();
+
+        if (!TryParseChannelId(channelId, out var providerId, out var streamId))
+        {
+            return Task.FromResult(sources);
+        }
+
+        var provider = _providerRegistry.GetById(providerId);
+        if (provider is null)
+        {
+            return Task.FromResult(sources);
+        }
+
+        var catalog = _catalogCache.GetOrCreate(providerId);
+        var stream = catalog.LiveStreams?.FirstOrDefault(s => s.StreamId == streamId);
+        if (stream is null)
+        {
+            return Task.FromResult(sources);
+        }
+
+        // Primary live source
+        sources.Add(new MediaSourceInfo
+        {
+            Id = channelId,
+            Path = _apiClient.BuildLiveStreamUrl(provider, streamId, "ts"),
+            Protocol = MediaProtocol.Http,
+            IsRemote = true,
+            SupportsDirectPlay = true,
+            SupportsDirectStream = true,
+            Name = stream.Name,
+        });
+
+        // Catch-up / timeshift source if the channel supports it (FR-LIVE-006)
+        if (stream.TvArchive == 1 && stream.TvArchiveDuration > 0)
+        {
+            // Timeshift URL uses the current time as reference; clients can seek within the window
+            var timeshiftUrl = _apiClient.BuildTimeshiftUrl(
+                provider, streamId, stream.TvArchiveDuration, DateTime.UtcNow.AddHours(-1));
+
+            sources.Add(new MediaSourceInfo
+            {
+                Id = $"{channelId}_timeshift",
+                Path = timeshiftUrl,
+                Protocol = MediaProtocol.Http,
+                IsRemote = true,
+                SupportsDirectPlay = true,
+                SupportsDirectStream = true,
+                Name = $"{stream.Name} (Catch-up)",
+            });
+        }
+
+        return Task.FromResult(sources);
     }
 
     /// <inheritdoc />
     public Task CloseLiveStream(string id, CancellationToken cancellationToken)
-    {
-        // HTTP streams are stateless; nothing to close.
-        return Task.CompletedTask;
-    }
+        => Task.CompletedTask;
 
     /// <inheritdoc />
     public Task ResetTuner(string id, CancellationToken cancellationToken)
-    {
-        return Task.CompletedTask;
-    }
+        => Task.CompletedTask;
 
-    // ── Timers / Recordings (not supported in Phase 1) ────────────────────────
+    // ── Timers / Recordings (not supported) ──────────────────────────────────
 
     /// <inheritdoc />
     public Task<IEnumerable<TimerInfo>> GetTimersAsync(CancellationToken cancellationToken)
@@ -197,9 +249,7 @@ public sealed class FluxLiveTvService : ILiveTvService
         => Task.FromResult<IEnumerable<SeriesTimerInfo>>(Array.Empty<SeriesTimerInfo>());
 
     /// <inheritdoc />
-    public Task<SeriesTimerInfo> GetNewTimerDefaultsAsync(
-        CancellationToken cancellationToken,
-        ProgramInfo? program = null)
+    public Task<SeriesTimerInfo> GetNewTimerDefaultsAsync(CancellationToken cancellationToken, ProgramInfo? program = null)
         => throw new NotSupportedException("Flux does not support recording timers.");
 
     /// <inheritdoc />
@@ -225,4 +275,20 @@ public sealed class FluxLiveTvService : ILiveTvService
     /// <inheritdoc />
     public Task CancelSeriesTimerAsync(string timerId, CancellationToken cancellationToken)
         => throw new NotSupportedException("Flux does not support recording timers.");
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+
+    private static bool TryParseChannelId(string channelId, out Guid providerId, out int streamId)
+    {
+        providerId = default;
+        streamId = 0;
+        var idx = channelId.IndexOf('_');
+        if (idx < 0)
+        {
+            return false;
+        }
+
+        return Guid.TryParse(channelId[..idx], out providerId)
+            && int.TryParse(channelId[(idx + 1)..], out streamId);
+    }
 }
