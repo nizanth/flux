@@ -4,7 +4,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <AssemblyName>Jellyfin.Plugin.Flux</AssemblyName>
     <RootNamespace>Jellyfin.Plugin.Flux</RootNamespace>
-    <Version>1.1.12.0</Version>
+    <Version>1.1.13.0</Version>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>

@@ -9,6 +9,14 @@
     "owner": "nizanth",
     "versions": [
       {
+        "changelog": "Fix: embed stream URL in MediaSources on each episode ChannelItemInfo at index time (dual-path: stored sources + callback); use ep.Id as string in URL (no int conversion); ensures Jellyfin always has a playable source regardless of which code path it takes.",
+        "checksum": "1efdc3a04b99f23cbad0e19d4776885b",
+        "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.13/flux_1.1.13.0.zip",
+        "targetAbi": "10.9.0.0",
+        "timestamp": "2026-05-16T00:00:00Z",
+        "version": "1.1.13.0"
+      },
+      {
         "changelog": "Fix: SeriesChannel MediaSourceInfo.Id set to composite item ID (was hardcoded '0'), mirroring the same fix applied to VodChannel in v1.1.11.",
         "checksum": "2b17cef79bb943eb9e28d4ffd311eedb",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.12/flux_1.1.12.0.zip",

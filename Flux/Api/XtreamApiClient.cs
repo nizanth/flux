@@ -153,7 +153,7 @@ public sealed class XtreamApiClient
     }
 
     /// <summary>Builds a series episode playback URL.</summary>
-    public string BuildSeriesStreamUrl(ProviderConfig provider, int episodeId, string extension = "mp4")
+    public string BuildSeriesStreamUrl(ProviderConfig provider, string episodeId, string extension = "mp4")
     {
         var (user, pass) = Credentials(provider);
         return $"{provider.BaseUrl}/series/{user}/{pass}/{episodeId}.{extension}";

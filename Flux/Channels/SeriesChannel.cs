@@ -151,9 +151,6 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
                         seriesInfo.Episodes.TryGetValue(seasonKey, out var episodes) &&
                         episodes is not null)
                     {
-                        // Episode ID encodes all info needed to build the URL at playback time:
-                        // "{providerId}_ep_{seriesId}_{episodeId}_{container}"
-                        // Only alphanumeric/hyphen chars — no encoding issues in Jellyfin's ExternalId.
                         var episodeItems = episodes
                             .OrderBy(e => e.EpisodeNum)
                             .Select(ep =>
@@ -161,13 +158,30 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
                                 var container = string.IsNullOrEmpty(ep.ContainerExtension)
                                     ? "mp4"
                                     : ep.ContainerExtension;
+                                var itemId = $"{providerId}_ep_{seriesId}_{ep.Id}_{container}";
+                                var url = _apiClient.BuildSeriesStreamUrl(provider, ep.Id, container);
                                 return new ChannelItemInfo
                                 {
-                                    Id = $"{providerId}_ep_{seriesId}_{ep.Id}_{container}",
+                                    Id = itemId,
                                     Name = ep.Title,
                                     Type = ChannelItemType.Media,
                                     MediaType = ChannelMediaType.Video,
                                     ContentType = ChannelMediaContentType.Episode,
+                                    MediaSources = new List<MediaSourceInfo>
+                                    {
+                                        new MediaSourceInfo
+                                        {
+                                            Id = itemId,
+                                            Path = url,
+                                            Protocol = MediaProtocol.Http,
+                                            IsRemote = true,
+                                            Container = container,
+                                            Name = ep.Title,
+                                            SupportsDirectPlay = true,
+                                            SupportsDirectStream = true,
+                                            SupportsTranscoding = true,
+                                        },
+                                    },
                                 };
                             })
                             .ToList();
@@ -214,15 +228,16 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
 
         // tail = "{seriesId}_{episodeId}_{container}"
         var tail = outerParts[1].Split('_');
-        // tail[0] = seriesId, tail[1] = episodeId, tail[2] = container
-        if (tail.Length < 3 || !int.TryParse(tail[1], out var numericEpisodeId))
+        // tail[0] = seriesId, tail[1] = episodeId (string), tail[2] = container
+        if (tail.Length < 3 || string.IsNullOrEmpty(tail[1]))
         {
             _logger.LogWarning("SeriesChannel: could not parse episode tail '{Tail}' in '{Id}'", outerParts[1], id);
             return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
         }
 
+        var episodeId = tail[1];
         var container = tail[2];
-        var url = _apiClient.BuildSeriesStreamUrl(provider, numericEpisodeId, container);
+        var url = _apiClient.BuildSeriesStreamUrl(provider, episodeId, container);
 
         IEnumerable<MediaSourceInfo> result = new List<MediaSourceInfo>
         {
