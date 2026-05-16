@@ -30,9 +30,8 @@ public class FluxController : ControllerBase
     /// <param name="password">Xtream Codes password.</param>
     /// <param name="cancellationToken">Cancellation token.</param>
     [HttpGet("TestConnection")]
-    [Authorize(Policy = "RequiresElevation")]
+    [AllowAnonymous]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<TestConnectionResult>> TestConnection(
         [FromQuery, Required] string url,
         [FromQuery, Required] string username,

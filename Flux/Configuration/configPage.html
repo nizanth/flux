@@ -228,7 +228,7 @@
                 '?url=' + encodeURIComponent(base) +
                 '&username=' + u +
                 '&password=' + p;
-            ApiClient.ajax({ type: 'GET', url: proxyUrl, dataType: 'json' })
+            ApiClient.getJSON(proxyUrl)
                 .then(function(result) {
                     if (result && result.success) {
                         showMsg('testResult', '✓ ' + result.message, true);
@@ -236,7 +236,10 @@
                         showMsg('testResult', '✗ ' + (result ? result.message : 'Unknown error'), false);
                     }
                 })
-                .catch(function(e) { showMsg('testResult', '✗ Error: ' + (e.message || e), false); });
+                .catch(function(e) {
+                    var msg = (e && e.status) ? 'HTTP ' + e.status : (e && e.message ? e.message : String(e));
+                    showMsg('testResult', '✗ ' + msg, false);
+                });
         }
         function triggerTask(key) {
             ApiClient.ajax({ type: 'POST', url: ApiClient.getUrl('ScheduledTasks/Running/' + encodeURIComponent(key)) })
