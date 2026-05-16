@@ -9,6 +9,14 @@
     "owner": "nizanth",
     "versions": [
       {
+        "changelog": "Diagnostic: add Information-level logging to GetChannelItemMediaInfo to confirm callback invocation, received id, parsed tail parts, and resolved URL — check Jellyfin server logs after attempting series playback.",
+        "checksum": "9660a53b78cc7926d31ce2607c63e84e",
+        "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.17/flux_1.1.17.0.zip",
+        "targetAbi": "10.9.0.0",
+        "timestamp": "2026-05-16T00:00:00Z",
+        "version": "1.1.17.0"
+      },
+      {
         "changelog": "Fix: restore IRequiresMediaInfoCallback on SeriesChannel now that episode ContentType is Movie — Jellyfin only persists media sources from the callback, not from embedded ChannelItemInfo.MediaSources, so the callback is required for playback.",
         "checksum": "18c5803e1824f451d449506e53c9e360",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.16/flux_1.1.16.0.zip",

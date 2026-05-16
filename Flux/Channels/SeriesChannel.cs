@@ -225,11 +225,13 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
         string id,
         CancellationToken cancellationToken)
     {
+        _logger.LogInformation("SeriesChannel.GetChannelItemMediaInfo called with id='{Id}'", id);
+
         // ID format: "{providerId}_ep_{seriesId}_{episodeId}_{container}"
         var outerParts = id.Split("_ep_", 2, StringSplitOptions.None);
         if (outerParts.Length != 2 || !Guid.TryParse(outerParts[0], out var providerId))
         {
-            _logger.LogWarning("SeriesChannel: could not parse ID '{Id}'", id);
+            _logger.LogWarning("SeriesChannel: could not parse ID '{Id}' (outerParts.Length={Len})", id, outerParts.Length);
             return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
         }
 
@@ -242,15 +244,17 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
 
         // tail = "{seriesId}_{episodeId}_{container}"
         var tail = outerParts[1].Split('_');
+        _logger.LogInformation("SeriesChannel: tail parts={Parts}", string.Join("|", tail));
         if (tail.Length < 3 || string.IsNullOrEmpty(tail[1]))
         {
-            _logger.LogWarning("SeriesChannel: could not parse episode tail '{Tail}' in '{Id}'", outerParts[1], id);
+            _logger.LogWarning("SeriesChannel: could not parse episode tail '{Tail}' in '{Id}' (tail.Length={Len})", outerParts[1], id, tail.Length);
             return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
         }
 
         var episodeId = tail[1];
         var container = tail[2];
         var url = _apiClient.BuildSeriesStreamUrl(provider, episodeId, container);
+        _logger.LogInformation("SeriesChannel: resolved url='{Url}' for id='{Id}'", url, id);
 
         IEnumerable<MediaSourceInfo> result = new List<MediaSourceInfo>
         {
