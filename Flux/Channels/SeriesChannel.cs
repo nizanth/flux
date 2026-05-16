@@ -14,7 +14,7 @@ namespace Jellyfin.Plugin.Flux.Channels;
 /// Jellyfin IChannel implementation that exposes Xtream Codes series content as a
 /// three-level browse-able hierarchy: Series → Season → Episode.
 /// </summary>
-public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
+public sealed class SeriesChannel : IChannel
 {
     private readonly ProviderRegistry _providerRegistry;
     private readonly CatalogCache _catalogCache;
@@ -201,61 +201,6 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
 
         _logger.LogWarning("SeriesChannel: unknown folder format '{FolderId}'", folderId);
         return new ChannelItemResult { Items = new List<ChannelItemInfo>() };
-    }
-
-    /// <inheritdoc />
-    public Task<IEnumerable<MediaSourceInfo>> GetChannelItemMediaInfo(
-        string id,
-        CancellationToken cancellationToken)
-    {
-        // ID format: "{providerId}_ep_{seriesId}_{episodeId}_{container}"
-        // e.g.  "a1b2c3d4-e5f6-7890-abcd-ef1234567890_ep_100_12345_mkv"
-        // Split on "_ep_" first (2 parts), then split the tail on "_" to get last token as container
-        // and second-to-last as episodeId.
-        var outerParts = id.Split("_ep_", 2, StringSplitOptions.None);
-        if (outerParts.Length != 2 || !Guid.TryParse(outerParts[0], out var providerId))
-        {
-            _logger.LogWarning("SeriesChannel: could not parse ID '{Id}'", id);
-            return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
-        }
-
-        var provider = _providerRegistry.GetById(providerId);
-        if (provider is null)
-        {
-            _logger.LogWarning("SeriesChannel: provider '{ProviderId}' not found", providerId);
-            return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
-        }
-
-        // tail = "{seriesId}_{episodeId}_{container}"
-        var tail = outerParts[1].Split('_');
-        // tail[0] = seriesId, tail[1] = episodeId (string), tail[2] = container
-        if (tail.Length < 3 || string.IsNullOrEmpty(tail[1]))
-        {
-            _logger.LogWarning("SeriesChannel: could not parse episode tail '{Tail}' in '{Id}'", outerParts[1], id);
-            return Task.FromResult(Enumerable.Empty<MediaSourceInfo>());
-        }
-
-        var episodeId = tail[1];
-        var container = tail[2];
-        var url = _apiClient.BuildSeriesStreamUrl(provider, episodeId, container);
-
-        IEnumerable<MediaSourceInfo> result = new List<MediaSourceInfo>
-        {
-            new MediaSourceInfo
-            {
-                Id = id,
-                Path = url,
-                Protocol = MediaProtocol.Http,
-                IsRemote = true,
-                Container = container,
-                Name = id,
-                SupportsDirectPlay = true,
-                SupportsDirectStream = true,
-                SupportsTranscoding = true,
-            },
-        };
-
-        return Task.FromResult(result);
     }
 
     /// <inheritdoc />
