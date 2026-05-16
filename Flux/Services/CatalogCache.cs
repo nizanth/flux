@@ -1,6 +1,4 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
 using Jellyfin.Plugin.Flux.Api.Dto;
 
 namespace Jellyfin.Plugin.Flux.Services;
@@ -63,4 +61,10 @@ public sealed class ProviderCatalog
 
     /// <summary>Gets or sets the time the series data was last refreshed.</summary>
     public DateTime? SeriesRefreshedAt { get; set; }
+
+    /// <summary>Gets or sets the parsed EPG programmes, keyed by XMLTV channel ID.</summary>
+    public Dictionary<string, List<XmltvProgramme>> EpgByChannel { get; set; } = new();
+
+    /// <summary>Gets or sets the time EPG data was last refreshed.</summary>
+    public DateTime? EpgRefreshedAt { get; set; }
 }
