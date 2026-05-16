@@ -116,7 +116,7 @@ public sealed class CatalogSyncService
         catalog.LiveCategories = await _apiClient.GetLiveCategoriesAsync(provider, cancellationToken).ConfigureAwait(false);
 
         _logger.LogDebug("Fetching live streams for provider '{Provider}'", provider.DisplayName);
-        catalog.LiveStreams = await _apiClient.GetLiveStreamsAsync(provider, cancellationToken: cancellationToken).ConfigureAwait(false);
+        catalog.LiveStreams = await _apiClient.GetLiveStreamsAsync(provider, null, cancellationToken).ConfigureAwait(false);
         catalog.LiveStreamsRefreshedAt = DateTime.UtcNow;
 
         _logger.LogInformation(
@@ -132,7 +132,7 @@ public sealed class CatalogSyncService
         catalog.VodCategories = await _apiClient.GetVodCategoriesAsync(provider, cancellationToken).ConfigureAwait(false);
 
         _logger.LogDebug("Fetching VOD streams for provider '{Provider}'", provider.DisplayName);
-        catalog.VodStreams = await _apiClient.GetVodStreamsAsync(provider, cancellationToken: cancellationToken).ConfigureAwait(false);
+        catalog.VodStreams = await _apiClient.GetVodStreamsAsync(provider, null, cancellationToken).ConfigureAwait(false);
         catalog.VodRefreshedAt = DateTime.UtcNow;
 
         _logger.LogInformation(
@@ -148,7 +148,7 @@ public sealed class CatalogSyncService
         catalog.SeriesCategories = await _apiClient.GetSeriesCategoriesAsync(provider, cancellationToken).ConfigureAwait(false);
 
         _logger.LogDebug("Fetching series list for provider '{Provider}'", provider.DisplayName);
-        catalog.Series = await _apiClient.GetSeriesAsync(provider, cancellationToken: cancellationToken).ConfigureAwait(false);
+        catalog.Series = await _apiClient.GetSeriesAsync(provider, null, cancellationToken).ConfigureAwait(false);
         catalog.SeriesRefreshedAt = DateTime.UtcNow;
 
         _logger.LogInformation(
