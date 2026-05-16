@@ -9,6 +9,14 @@
     "owner": "nizanth",
     "versions": [
       {
+        "changelog": "Fix: build season folders from Episodes.Keys instead of Seasons.Keys — providers that return seasons:[] still populate the episodes dictionary, so using Episodes as the source shows all seasons that actually have content.",
+        "checksum": "d9965d5e6f0c8a6c1a1e5c04c295ed13",
+        "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.20/flux_1.1.20.0.zip",
+        "targetAbi": "10.9.0.0",
+        "timestamp": "2026-05-16T00:00:00Z",
+        "version": "1.1.20.0"
+      },
+      {
         "changelog": "Fix: add DictionaryOrArrayConverterFactory so $.seasons and $.episodes fields deserialize correctly when providers return [] instead of {} for empty seasons — prevents series folders from failing to expand; also remove ImageUrl from series folder items to stop image-fetch errors for unreachable provider hosts.",
         "checksum": "cc48bc48ad240a6c1d43275f39bd925d",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.19/flux_1.1.19.0.zip",

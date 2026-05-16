@@ -122,9 +122,9 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
                         .GetOrFetchInfoAsync(provider, seriesId, cancellationToken)
                         .ConfigureAwait(false);
 
-                    if (seriesInfo?.Seasons is not null)
+                    if (seriesInfo?.Episodes is not null && seriesInfo.Episodes.Count > 0)
                     {
-                        var seasonItems = seriesInfo.Seasons.Keys
+                        var seasonItems = seriesInfo.Episodes.Keys
                             .OrderBy(k => k, StringComparer.OrdinalIgnoreCase)
                             .Select(seasonKey => new ChannelItemInfo
                             {
