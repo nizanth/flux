@@ -31,6 +31,8 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<ILiveTvService, FluxLiveTvService>();
         services.AddSingleton<IChannel, VodChannel>();
         services.AddSingleton<VodMetadataService>();
+        services.AddSingleton<IChannel, SeriesChannel>();
+        services.AddSingleton<SeriesMetadataService>();
 
         // Scheduled tasks
         services.AddSingleton<IScheduledTask, SyncLiveTask>();
