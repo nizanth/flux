@@ -10,7 +10,7 @@
     "versions": [
       {
         "changelog": "Initial release: live channels with EPG, VOD movies, series with season/episode browsing, catch-up TV, multi-provider support, health monitoring, encrypted credentials, admin config page.",
-        "checksum": "ad4bcfae057e38cbedc28488493bc568",
+        "checksum": "3ac25a61eba8bf106b4afbfbee9ef343",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.0.0/flux_1.0.0.0.zip",
         "targetAbi": "10.9.0.0",
         "timestamp": "2026-05-15T00:00:00Z",
