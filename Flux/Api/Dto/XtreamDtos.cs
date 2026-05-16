@@ -6,6 +6,43 @@ using System.Text.Json.Serialization;
 namespace Jellyfin.Plugin.Flux.Api.Dto;
 
 /// <summary>
+/// Converts a JSON object OR a JSON array to a nullable Dictionary.
+/// Some Xtream Codes providers return [] instead of {} when the collection is empty.
+/// </summary>
+internal sealed class DictionaryOrArrayConverterFactory : JsonConverterFactory
+{
+    public override bool CanConvert(Type typeToConvert)
+        => typeToConvert.IsGenericType && typeToConvert.GetGenericTypeDefinition() == typeof(Dictionary<,>);
+
+    public override JsonConverter? CreateConverter(Type typeToConvert, JsonSerializerOptions options)
+    {
+        var args = typeToConvert.GetGenericArguments();
+        var converterType = typeof(DictionaryOrArrayConverter<,>).MakeGenericType(args[0], args[1]);
+        return (JsonConverter?)Activator.CreateInstance(converterType);
+    }
+}
+
+internal sealed class DictionaryOrArrayConverter<TKey, TValue> : JsonConverter<Dictionary<TKey, TValue>?>
+    where TKey : notnull
+{
+    public override Dictionary<TKey, TValue>? Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+    {
+        if (reader.TokenType == JsonTokenType.Null)
+            return null;
+        if (reader.TokenType == JsonTokenType.StartArray)
+        {
+            // Provider returned [] instead of {} — treat as empty/null
+            reader.Skip();
+            return null;
+        }
+        return JsonSerializer.Deserialize<Dictionary<TKey, TValue>>(ref reader, options);
+    }
+
+    public override void Write(Utf8JsonWriter writer, Dictionary<TKey, TValue>? value, JsonSerializerOptions options)
+        => JsonSerializer.Serialize(writer, value, options);
+}
+
+/// <summary>
 /// Converts any JSON scalar (number, boolean, string, null) to a nullable string.
 /// Xtream Codes providers are inconsistent — the same field may arrive as a quoted
 /// string on one server and a bare number on another.
@@ -327,10 +364,12 @@ public sealed class SeriesInfo
 
     /// <summary>Gets or sets the seasons dictionary keyed by season number string.</summary>
     [JsonPropertyName("seasons")]
+    [JsonConverter(typeof(DictionaryOrArrayConverterFactory))]
     public Dictionary<string, SeasonInfo>? Seasons { get; set; }
 
     /// <summary>Gets or sets the episodes dictionary keyed by season number string.</summary>
     [JsonPropertyName("episodes")]
+    [JsonConverter(typeof(DictionaryOrArrayConverterFactory))]
     public Dictionary<string, List<EpisodeInfo>>? Episodes { get; set; }
 }
 

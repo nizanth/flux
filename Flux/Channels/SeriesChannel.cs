@@ -349,11 +349,6 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
                 Type = ChannelItemType.Folder,
             };
 
-            if (!string.IsNullOrEmpty(series.Cover))
-            {
-                item.ImageUrl = series.Cover;
-            }
-
             items.Add(item);
         }
 
@@ -378,11 +373,6 @@ public sealed class SeriesChannel : IChannel, IRequiresMediaInfoCallback
                 Name = series.Name,
                 Type = ChannelItemType.Folder,
             };
-
-            if (!string.IsNullOrEmpty(series.Cover))
-            {
-                item.ImageUrl = series.Cover;
-            }
 
             items.Add(item);
         }
