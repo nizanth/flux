@@ -1,0 +1,745 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Jellyfin.Plugin.Flux</name>
+    </assembly>
+    <members>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.AuthResponse">
+            <summary>
+            Root authentication response from the Xtream Codes player_api.php endpoint.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.AuthResponse.UserInfo">
+            <summary>Gets or sets the user information returned by the server.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.AuthResponse.ServerInfo">
+            <summary>Gets or sets the server information returned by the server.</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.UserInfo">
+            <summary>
+            Information about the authenticated Xtream Codes user account.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.UserInfo.Auth">
+            <summary>Gets or sets a value indicating whether authentication succeeded (1) or failed (0).</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.UserInfo.Status">
+            <summary>Gets or sets the account status (e.g. "Active", "Expired").</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.UserInfo.ExpDate">
+            <summary>Gets or sets the Unix timestamp (as a string) when the account expires.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.UserInfo.MaxConnections">
+            <summary>Gets or sets the maximum number of simultaneous connections allowed.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.UserInfo.ActiveCons">
+            <summary>Gets or sets the current number of active connections.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.UserInfo.AllowedOutputFormats">
+            <summary>Gets or sets the list of output formats allowed for this account.</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.ServerInfo">
+            <summary>
+            Information about the Xtream Codes server.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.ServerInfo.Url">
+            <summary>Gets or sets the server hostname or IP address.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.ServerInfo.Port">
+            <summary>Gets or sets the HTTP port the server listens on.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.ServerInfo.HttpsPort">
+            <summary>Gets or sets the HTTPS port the server listens on.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.ServerInfo.Protocol">
+            <summary>Gets or sets the preferred protocol ("http" or "https").</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.Category">
+            <summary>
+            Represents a stream category (used for live, VOD, and series).
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.Category.CategoryId">
+            <summary>Gets or sets the unique category identifier.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.Category.CategoryName">
+            <summary>Gets or sets the human-readable category name.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.Category.ParentId">
+            <summary>Gets or sets the parent category ID (0 if top-level).</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.LiveStream">
+            <summary>
+            Represents a live TV stream entry.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.LiveStream.StreamId">
+            <summary>Gets or sets the unique stream identifier.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.LiveStream.Name">
+            <summary>Gets or sets the display name of the channel.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.LiveStream.Num">
+            <summary>Gets or sets the ordering number for this stream.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.LiveStream.StreamIcon">
+            <summary>Gets or sets the URL to the channel logo/icon.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.LiveStream.EpgChannelId">
+            <summary>Gets or sets the EPG channel identifier used to match EPG data.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.LiveStream.CategoryId">
+            <summary>Gets or sets the category this stream belongs to.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.LiveStream.TvArchive">
+            <summary>Gets or sets a value indicating whether TV archive/catch-up is available (1) or not (0).</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.LiveStream.TvArchiveDuration">
+            <summary>Gets or sets the number of days of TV archive available.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.LiveStream.CustomSid">
+            <summary>Gets or sets the custom stream identifier, if any.</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.VodStream">
+            <summary>
+            Represents a Video-on-Demand stream entry.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodStream.StreamId">
+            <summary>Gets or sets the unique stream identifier.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodStream.Name">
+            <summary>Gets or sets the display name of the movie.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodStream.StreamIcon">
+            <summary>Gets or sets the URL to the movie poster/icon.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodStream.CategoryId">
+            <summary>Gets or sets the category this stream belongs to.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodStream.ContainerExtension">
+            <summary>Gets or sets the file container extension (e.g. "mp4", "mkv").</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodStream.Rating">
+            <summary>Gets or sets the rating string for this movie.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodStream.Added">
+            <summary>Gets or sets the Unix timestamp (as a string) when the stream was added.</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.VodInfo">
+            <summary>
+            Full VOD info response including metadata and stream data.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfo.Info">
+            <summary>Gets or sets the detailed metadata for this movie.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfo.MovieData">
+            <summary>Gets or sets the stream data for this movie.</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.VodInfoDetail">
+            <summary>
+            Detailed metadata for a VOD movie.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfoDetail.TmdbId">
+            <summary>Gets or sets the TMDB identifier for this movie.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfoDetail.ImdbId">
+            <summary>Gets or sets the IMDb identifier for this movie.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfoDetail.Plot">
+            <summary>Gets or sets the plot synopsis.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfoDetail.Cast">
+            <summary>Gets or sets a comma-separated list of cast members.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfoDetail.Director">
+            <summary>Gets or sets the director(s) of the movie.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfoDetail.Genre">
+            <summary>Gets or sets the genre(s) of the movie.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfoDetail.ReleaseDate">
+            <summary>Gets or sets the release date string.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfoDetail.Rating">
+            <summary>Gets or sets the rating string.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfoDetail.DurationSecs">
+            <summary>Gets or sets the duration in seconds.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfoDetail.MovieImage">
+            <summary>Gets or sets the URL to the movie poster image.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfoDetail.BackdropPath">
+            <summary>Gets or sets a list of backdrop image URLs.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfoDetail.YoutubeTrailer">
+            <summary>Gets or sets the YouTube trailer video ID or URL.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.VodInfoDetail.EpisodeRunTime">
+            <summary>Gets or sets the episode runtime string (used for series, may appear in some VOD responses).</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.SeriesStream">
+            <summary>
+            Represents a series (TV show) entry in the Xtream Codes catalog.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesStream.SeriesId">
+            <summary>Gets or sets the unique series identifier.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesStream.Name">
+            <summary>Gets or sets the display name of the series.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesStream.Cover">
+            <summary>Gets or sets the URL to the series cover art.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesStream.CategoryId">
+            <summary>Gets or sets the category this series belongs to.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesStream.Genre">
+            <summary>Gets or sets the genre(s) of the series.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesStream.ReleaseDate">
+            <summary>Gets or sets the release date string.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesStream.Plot">
+            <summary>Gets or sets the plot synopsis.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesStream.RatingBased">
+            <summary>Gets or sets the rating on a 5-point scale.</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfo">
+            <summary>
+            Full series info response including metadata, seasons, and episodes.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfo.Info">
+            <summary>Gets or sets the detailed metadata for this series.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfo.Seasons">
+            <summary>Gets or sets the seasons dictionary keyed by season number string.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfo.Episodes">
+            <summary>Gets or sets the episodes dictionary keyed by season number string.</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfoDetail">
+            <summary>
+            Detailed metadata for a series.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfoDetail.TmdbId">
+            <summary>Gets or sets the TMDB identifier (may be a numeric string).</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfoDetail.ImdbId">
+            <summary>Gets or sets the IMDb identifier.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfoDetail.TvdbId">
+            <summary>Gets or sets the TVDB identifier.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfoDetail.Name">
+            <summary>Gets or sets the series name.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfoDetail.Cover">
+            <summary>Gets or sets the URL to the series cover art.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfoDetail.Plot">
+            <summary>Gets or sets the plot synopsis.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfoDetail.Genre">
+            <summary>Gets or sets the genre(s) of the series.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfoDetail.ReleaseDate">
+            <summary>Gets or sets the release date string.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfoDetail.EpisodeRunTime">
+            <summary>Gets or sets the episode runtime string.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeriesInfoDetail.BackdropPath">
+            <summary>Gets or sets a list of backdrop image URLs.</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.SeasonInfo">
+            <summary>
+            Metadata for a single season of a series.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeasonInfo.SeasonNumber">
+            <summary>Gets or sets the season number.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeasonInfo.Name">
+            <summary>Gets or sets the season name.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeasonInfo.Overview">
+            <summary>Gets or sets the season overview/synopsis.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeasonInfo.Cover">
+            <summary>Gets or sets the URL to the season cover image.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.SeasonInfo.CoverBig">
+            <summary>Gets or sets the URL to the large season cover image.</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.EpisodeInfo">
+            <summary>
+            Represents a single episode within a series season.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.EpisodeInfo.Id">
+            <summary>Gets or sets the unique episode identifier (stream ID as a string).</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.EpisodeInfo.EpisodeNum">
+            <summary>Gets or sets the episode number within the season.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.EpisodeInfo.Title">
+            <summary>Gets or sets the episode title.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.EpisodeInfo.ContainerExtension">
+            <summary>Gets or sets the file container extension (e.g. "mp4", "mkv").</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.EpisodeInfo.Info">
+            <summary>Gets or sets the detailed metadata for this episode.</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.EpisodeInfoDetail">
+            <summary>
+            Detailed metadata for an episode.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.EpisodeInfoDetail.Plot">
+            <summary>Gets or sets the episode plot description.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.EpisodeInfoDetail.ReleaseDate">
+            <summary>Gets or sets the episode air date string.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.EpisodeInfoDetail.DurationSecs">
+            <summary>Gets or sets the episode duration in seconds.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.EpisodeInfoDetail.StillImage">
+            <summary>Gets or sets the URL to the episode still/thumbnail image.</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.ShortEpgResponse">
+            <summary>
+            Response from the short EPG endpoint containing current and upcoming programme listings.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.ShortEpgResponse.EpgListings">
+            <summary>Gets or sets the list of EPG entries.</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.Dto.ShortEpgEntry">
+            <summary>
+            A single EPG programme entry.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.ShortEpgEntry.Id">
+            <summary>Gets or sets the entry identifier.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.ShortEpgEntry.EpgId">
+            <summary>Gets or sets the EPG channel identifier.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.ShortEpgEntry.Title">
+            <summary>Gets or sets the programme title (may be Base64-encoded depending on provider).</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.ShortEpgEntry.Start">
+            <summary>Gets or sets the programme start time string.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.ShortEpgEntry.End">
+            <summary>Gets or sets the programme end time string.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Api.Dto.ShortEpgEntry.Description">
+            <summary>Gets or sets the programme description (may be Base64-encoded depending on provider).</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Api.XtreamApiClient">
+            <summary>
+            HTTP client for communicating with an Xtream Codes IPTV panel API.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.#ctor(System.Net.Http.HttpClient,Microsoft.Extensions.Logging.ILogger{Jellyfin.Plugin.Flux.Api.XtreamApiClient})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Flux.Api.XtreamApiClient"/> class.
+            </summary>
+            <param name="httpClient">The <see cref="T:System.Net.Http.HttpClient"/> used for requests.</param>
+            <param name="logger">Logger instance.</param>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.AuthenticateAsync(Jellyfin.Plugin.Flux.Configuration.ProviderConfig,System.Threading.CancellationToken)">
+            <summary>
+            Authenticates against the Xtream Codes API and retrieves server/user info.
+            </summary>
+            <param name="provider">The provider configuration to authenticate with.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <returns>The <see cref="T:Jellyfin.Plugin.Flux.Api.Dto.AuthResponse"/> or <c>null</c> on failure.</returns>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.GetLiveCategoriesAsync(Jellyfin.Plugin.Flux.Configuration.ProviderConfig,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves all live stream categories for the given provider.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.GetLiveStreamsAsync(Jellyfin.Plugin.Flux.Configuration.ProviderConfig,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves all live streams for the given provider.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.GetVodCategoriesAsync(Jellyfin.Plugin.Flux.Configuration.ProviderConfig,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves all VOD categories for the given provider.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.GetVodStreamsAsync(Jellyfin.Plugin.Flux.Configuration.ProviderConfig,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves all VOD streams for the given provider.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.GetVodInfoAsync(Jellyfin.Plugin.Flux.Configuration.ProviderConfig,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves detailed info for a specific VOD stream.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.GetSeriesCategoriesAsync(Jellyfin.Plugin.Flux.Configuration.ProviderConfig,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves all series categories for the given provider.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.GetSeriesAsync(Jellyfin.Plugin.Flux.Configuration.ProviderConfig,System.String,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves all series entries for the given provider.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.GetSeriesInfoAsync(Jellyfin.Plugin.Flux.Configuration.ProviderConfig,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves detailed info (seasons and episodes) for a specific series.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.GetShortEpgAsync(Jellyfin.Plugin.Flux.Configuration.ProviderConfig,System.Int32,System.Int32,System.Threading.CancellationToken)">
+            <summary>
+            Retrieves the short EPG listing for a specific live stream.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.BuildLiveStreamUrl(Jellyfin.Plugin.Flux.Configuration.ProviderConfig,System.Int32,System.String)">
+            <summary>
+            Builds the stream URL for a live channel.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.BuildVodStreamUrl(Jellyfin.Plugin.Flux.Configuration.ProviderConfig,System.Int32,System.String)">
+            <summary>
+            Builds the stream URL for a VOD movie.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.BuildSeriesStreamUrl(Jellyfin.Plugin.Flux.Configuration.ProviderConfig,System.Int32,System.String)">
+            <summary>
+            Builds the stream URL for a series episode.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.Dispose">
+            <inheritdoc />
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Api.XtreamApiClient.DecryptPassword(System.String)">
+            <summary>
+            Decrypts a stored password. Currently a no-op placeholder — replace with
+            a real implementation (e.g. DPAPI or AES) before production use.
+            </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Configuration.PluginConfiguration">
+            <summary>
+            Plugin configuration for Flux.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Configuration.PluginConfiguration.#ctor">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Flux.Configuration.PluginConfiguration"/> class.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.PluginConfiguration.Providers">
+            <summary>
+            Gets or sets the list of configured IPTV providers.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.PluginConfiguration.LiveChannelRefreshHours">
+            <summary>
+            Gets or sets how often (in hours) live channel data is refreshed.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.PluginConfiguration.EpgRefreshHours">
+            <summary>
+            Gets or sets how often (in hours) EPG data is refreshed.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.PluginConfiguration.VodRefreshHours">
+            <summary>
+            Gets or sets how often (in hours) VOD data is refreshed.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.PluginConfiguration.SeriesRefreshHours">
+            <summary>
+            Gets or sets how often (in hours) series data is refreshed.
+            </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Configuration.ProviderHealth">
+            <summary>
+            Represents the health status of an Xtream Codes provider.
+            </summary>
+        </member>
+        <member name="F:Jellyfin.Plugin.Flux.Configuration.ProviderHealth.Unknown">
+            <summary>
+            Health status is not yet known.
+            </summary>
+        </member>
+        <member name="F:Jellyfin.Plugin.Flux.Configuration.ProviderHealth.Ok">
+            <summary>
+            Provider is reachable and functioning normally.
+            </summary>
+        </member>
+        <member name="F:Jellyfin.Plugin.Flux.Configuration.ProviderHealth.Degraded">
+            <summary>
+            Provider is reachable but experiencing issues.
+            </summary>
+        </member>
+        <member name="F:Jellyfin.Plugin.Flux.Configuration.ProviderHealth.Failed">
+            <summary>
+            Provider is unreachable or returning errors.
+            </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Configuration.ProviderConfig">
+            <summary>
+            Configuration for a single Xtream Codes IPTV provider.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.ProviderConfig.Id">
+            <summary>
+            Gets or sets the unique identifier for this provider.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.ProviderConfig.DisplayName">
+            <summary>
+            Gets or sets the human-readable display name for this provider.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.ProviderConfig.BaseUrl">
+            <summary>
+            Gets or sets the base URL of the Xtream Codes server (e.g. http://provider.example.com:8080).
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.ProviderConfig.Username">
+            <summary>
+            Gets or sets the Xtream Codes username.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.ProviderConfig.EncryptedPassword">
+            <summary>
+            Gets or sets the encrypted Xtream Codes password.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.ProviderConfig.UserAgent">
+            <summary>
+            Gets or sets the user-agent string sent with HTTP requests to this provider.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.ProviderConfig.RequireHttps">
+            <summary>
+            Gets or sets a value indicating whether HTTPS is required for this provider.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.ProviderConfig.EnabledCategoryIds">
+            <summary>
+            Gets or sets the list of category IDs that are enabled for this provider.
+            An empty list means all categories are enabled.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.ProviderConfig.LastSyncAt">
+            <summary>
+            Gets or sets the timestamp of the last successful sync for this provider.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.ProviderConfig.Health">
+            <summary>
+            Gets or sets the current health status of this provider.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Configuration.ProviderConfig.LastError">
+            <summary>
+            Gets or sets the last error message encountered when communicating with this provider.
+            </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Plugin">
+            <summary>
+            Main plugin class for Flux - Xtream Codes IPTV client.
+            </summary>
+        </member>
+        <member name="F:Jellyfin.Plugin.Flux.Plugin.PluginGuid">
+            <summary>
+            The unique identifier for this plugin.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Plugin.Instance">
+            <summary>
+            Gets the singleton instance of this plugin.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Plugin.#ctor(MediaBrowser.Common.Configuration.IApplicationPaths,MediaBrowser.Model.Serialization.IXmlSerializer)">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Flux.Plugin"/> class.
+            </summary>
+            <param name="appPaths">Instance of <see cref="T:MediaBrowser.Common.Configuration.IApplicationPaths"/>.</param>
+            <param name="xmlSerializer">Instance of <see cref="T:MediaBrowser.Model.Serialization.IXmlSerializer"/>.</param>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Plugin.Name">
+            <inheritdoc />
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Plugin.Id">
+            <inheritdoc />
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Plugin.Description">
+            <inheritdoc />
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Plugin.GetPages">
+            <inheritdoc />
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.ServiceCollectionExtensions">
+            <summary>
+            Extension methods for registering Flux plugin services with the DI container.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.ServiceCollectionExtensions.AddFluxPlugin(Microsoft.Extensions.DependencyInjection.IServiceCollection)">
+            <summary>
+            Registers all Flux plugin services into the provided <see cref="T:Microsoft.Extensions.DependencyInjection.IServiceCollection"/>.
+            </summary>
+            <param name="services">The service collection to configure.</param>
+            <returns>The same <see cref="T:Microsoft.Extensions.DependencyInjection.IServiceCollection"/> for chaining.</returns>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Services.CatalogCache">
+            <summary>
+            In-memory cache for Xtream Codes catalog data (live streams, VOD, series, categories).
+            Keyed by provider ID to support multiple providers simultaneously.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Services.CatalogCache.GetOrCreate(System.Guid)">
+            <summary>
+            Gets or creates the catalog for the specified provider.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Services.CatalogCache.Invalidate(System.Guid)">
+            <summary>
+            Removes all cached data for the specified provider.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Services.CatalogCache.InvalidateAll">
+            <summary>
+            Removes all cached data for all providers.
+            </summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Services.ProviderCatalog">
+            <summary>
+            Holds cached catalog data for a single provider.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.ProviderCatalog.LiveCategories">
+            <summary>Gets or sets the cached list of live stream categories.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.ProviderCatalog.LiveStreams">
+            <summary>Gets or sets the cached list of live streams.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.ProviderCatalog.LiveStreamsRefreshedAt">
+            <summary>Gets or sets the time the live stream data was last refreshed.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.ProviderCatalog.VodCategories">
+            <summary>Gets or sets the cached list of VOD categories.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.ProviderCatalog.VodStreams">
+            <summary>Gets or sets the cached list of VOD streams.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.ProviderCatalog.VodRefreshedAt">
+            <summary>Gets or sets the time the VOD data was last refreshed.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.ProviderCatalog.SeriesCategories">
+            <summary>Gets or sets the cached list of series categories.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.ProviderCatalog.Series">
+            <summary>Gets or sets the cached list of series.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.ProviderCatalog.SeriesRefreshedAt">
+            <summary>Gets or sets the time the series data was last refreshed.</summary>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Services.CatalogSyncService">
+            <summary>
+            Orchestrates periodic catalog sync operations for all configured providers,
+            pulling live streams, VOD, series, and EPG data from Xtream Codes servers.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Services.CatalogSyncService.#ctor(Jellyfin.Plugin.Flux.Api.XtreamApiClient,Jellyfin.Plugin.Flux.Services.CatalogCache,Microsoft.Extensions.Logging.ILogger{Jellyfin.Plugin.Flux.Services.CatalogSyncService})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Flux.Services.CatalogSyncService"/> class.
+            </summary>
+            <param name="apiClient">The Xtream Codes API client.</param>
+            <param name="cache">The in-memory catalog cache.</param>
+            <param name="logger">Logger instance.</param>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Services.CatalogSyncService.SyncProviderAsync(Jellyfin.Plugin.Flux.Configuration.ProviderConfig,Jellyfin.Plugin.Flux.Configuration.PluginConfiguration,System.Threading.CancellationToken)">
+            <summary>
+            Performs a full sync for a single provider, refreshing all catalog data that
+            has exceeded its configured TTL.
+            </summary>
+            <param name="provider">The provider configuration to sync.</param>
+            <param name="config">The plugin configuration (provides refresh intervals).</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Services.CatalogSyncService.SyncAllProvidersAsync(Jellyfin.Plugin.Flux.Configuration.PluginConfiguration,System.Threading.CancellationToken)">
+            <summary>
+            Performs a full sync for all configured providers.
+            </summary>
+            <param name="config">The plugin configuration.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Services.XmltvParser">
+            <summary>
+            Parses XMLTV-format EPG data from a URL or stream.
+            </summary>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Services.XmltvParser.#ctor(System.Net.Http.IHttpClientFactory,Microsoft.Extensions.Logging.ILogger{Jellyfin.Plugin.Flux.Services.XmltvParser})">
+            <summary>
+            Initializes a new instance of the <see cref="T:Jellyfin.Plugin.Flux.Services.XmltvParser"/> class.
+            </summary>
+            <param name="httpClientFactory">Factory used to create HTTP clients.</param>
+            <param name="logger">Logger instance.</param>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Services.XmltvParser.ParseFromUrlAsync(System.String,System.Threading.CancellationToken)">
+            <summary>
+            Downloads and parses an XMLTV EPG file from the given URL.
+            </summary>
+            <param name="xmltvUrl">URL of the XMLTV file.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <returns>A list of parsed <see cref="T:Jellyfin.Plugin.Flux.Services.XmltvProgramme"/> entries.</returns>
+        </member>
+        <member name="M:Jellyfin.Plugin.Flux.Services.XmltvParser.ParseFromStreamAsync(System.IO.Stream,System.Threading.CancellationToken)">
+            <summary>
+            Parses XMLTV EPG data from the given stream.
+            </summary>
+            <param name="stream">The XML stream to parse.</param>
+            <param name="cancellationToken">Cancellation token.</param>
+            <returns>A list of parsed <see cref="T:Jellyfin.Plugin.Flux.Services.XmltvProgramme"/> entries.</returns>
+        </member>
+        <member name="T:Jellyfin.Plugin.Flux.Services.XmltvProgramme">
+            <summary>
+            Represents a single programme entry from an XMLTV EPG file.
+            </summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.XmltvProgramme.ChannelId">
+            <summary>Gets or sets the channel identifier this programme belongs to.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.XmltvProgramme.Start">
+            <summary>Gets or sets the programme start time.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.XmltvProgramme.Stop">
+            <summary>Gets or sets the programme end time (may be null if not provided).</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.XmltvProgramme.Title">
+            <summary>Gets or sets the programme title.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.XmltvProgramme.Description">
+            <summary>Gets or sets the programme description.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.XmltvProgramme.Category">
+            <summary>Gets or sets the programme category.</summary>
+        </member>
+        <member name="P:Jellyfin.Plugin.Flux.Services.XmltvProgramme.IconUrl">
+            <summary>Gets or sets the URL to a programme icon/poster.</summary>
+        </member>
+    </members>
+</doc>
