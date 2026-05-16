@@ -11,9 +11,8 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Flux.Channels;
 
 /// <summary>
-/// Jellyfin IChannel implementation that exposes Xtream Codes VOD content as a
-/// browse-able virtual channel library. All configured providers are merged into
-/// a single flat list of movies.
+/// Jellyfin IChannel implementation that exposes Xtream Codes VOD content browseable
+/// by category. Each provider's categories are shown as folders at the root level.
 /// </summary>
 public sealed class VodChannel : IChannel, IRequiresMediaInfoCallback
 {
@@ -80,12 +79,28 @@ public sealed class VodChannel : IChannel, IRequiresMediaInfoCallback
         InternalChannelItemQuery query,
         CancellationToken cancellationToken)
     {
-        var items = BuildVodItems();
-        return Task.FromResult(new ChannelItemResult
+        var folderId = query.FolderId;
+
+        if (string.IsNullOrEmpty(folderId))
         {
-            Items = items,
-            TotalRecordCount = items.Count,
-        });
+            var items = BuildCategoryFolders();
+            return Task.FromResult(new ChannelItemResult { Items = items, TotalRecordCount = items.Count });
+        }
+
+        if (folderId.StartsWith("vod-cat:", StringComparison.Ordinal))
+        {
+            // Format: vod-cat:{providerId}:{categoryId}
+            var parts = folderId.Split(':', 3);
+            if (parts.Length == 3 && Guid.TryParse(parts[1], out var providerId))
+            {
+                var categoryId = parts[2];
+                var items = BuildVodItemsForCategory(providerId, categoryId);
+                return Task.FromResult(new ChannelItemResult { Items = items, TotalRecordCount = items.Count });
+            }
+        }
+
+        _logger.LogWarning("VodChannel: unknown folder format '{FolderId}'", folderId);
+        return Task.FromResult(new ChannelItemResult { Items = new List<ChannelItemInfo>() });
     }
 
     /// <inheritdoc />
@@ -145,39 +160,113 @@ public sealed class VodChannel : IChannel, IRequiresMediaInfoCallback
     public IEnumerable<ImageType> GetSupportedChannelImages()
         => Enumerable.Empty<ImageType>();
 
-    private List<ChannelItemInfo> BuildVodItems()
+    private List<ChannelItemInfo> BuildCategoryFolders()
     {
         var items = new List<ChannelItemInfo>();
+        var allProviders = _providerRegistry.GetAll();
+        var multiProvider = allProviders.Count > 1;
 
-        foreach (var provider in _providerRegistry.GetAll())
+        foreach (var provider in allProviders)
         {
             var catalog = _catalogCache.GetOrCreate(provider.Id);
-            var streams = catalog.VodStreams;
+            var categories = catalog.VodCategories;
 
-            if (streams is null || streams.Count == 0)
+            if (categories is null || categories.Count == 0)
             {
-                _logger.LogDebug("No VOD streams cached for provider '{Provider}'; skipping.", provider.DisplayName);
+                _logger.LogDebug("No VOD categories cached for provider '{Provider}'; falling back to flat list.", provider.DisplayName);
+                var flat = BuildVodItemsForProvider(provider.Id);
+                items.AddRange(flat);
                 continue;
             }
 
-            foreach (var stream in streams)
+            foreach (var category in categories)
             {
-                var item = new ChannelItemInfo
-                {
-                    Id = $"{provider.Id}_vod_{stream.StreamId}",
-                    Name = stream.Name,
-                    Type = ChannelItemType.Media,
-                    MediaType = ChannelMediaType.Video,
-                    ContentType = ChannelMediaContentType.Movie,
-                };
+                var name = multiProvider
+                    ? $"{provider.DisplayName} — {category.CategoryName}"
+                    : category.CategoryName;
 
-                if (!string.IsNullOrEmpty(stream.StreamIcon))
+                items.Add(new ChannelItemInfo
                 {
-                    item.ImageUrl = stream.StreamIcon;
-                }
-
-                items.Add(item);
+                    Id = $"vod-cat:{provider.Id}:{category.CategoryId}",
+                    Name = name,
+                    Type = ChannelItemType.Folder,
+                });
             }
+        }
+
+        return items;
+    }
+
+    private List<ChannelItemInfo> BuildVodItemsForCategory(Guid providerId, string categoryId)
+    {
+        var provider = _providerRegistry.GetById(providerId);
+        if (provider is null)
+        {
+            _logger.LogWarning("VodChannel: provider '{ProviderId}' not found for category '{CategoryId}'", providerId, categoryId);
+            return new List<ChannelItemInfo>();
+        }
+
+        var catalog = _catalogCache.GetOrCreate(providerId);
+        var streams = catalog.VodStreams?
+            .Where(s => s.CategoryId == categoryId)
+            .ToList();
+
+        if (streams is null || streams.Count == 0)
+        {
+            _logger.LogDebug("No VOD streams for provider '{Provider}' category '{CategoryId}'.", provider.DisplayName, categoryId);
+            return new List<ChannelItemInfo>();
+        }
+
+        var items = new List<ChannelItemInfo>(streams.Count);
+        foreach (var stream in streams)
+        {
+            var item = new ChannelItemInfo
+            {
+                Id = $"{provider.Id}_vod_{stream.StreamId}",
+                Name = stream.Name,
+                Type = ChannelItemType.Media,
+                MediaType = ChannelMediaType.Video,
+                ContentType = ChannelMediaContentType.Movie,
+            };
+
+            if (!string.IsNullOrEmpty(stream.StreamIcon))
+            {
+                item.ImageUrl = stream.StreamIcon;
+            }
+
+            items.Add(item);
+        }
+
+        return items;
+    }
+
+    private List<ChannelItemInfo> BuildVodItemsForProvider(Guid providerId)
+    {
+        var provider = _providerRegistry.GetById(providerId);
+        if (provider is null) return new List<ChannelItemInfo>();
+
+        var catalog = _catalogCache.GetOrCreate(providerId);
+        var streams = catalog.VodStreams;
+        if (streams is null || streams.Count == 0) return new List<ChannelItemInfo>();
+
+        var items = new List<ChannelItemInfo>(streams.Count);
+        foreach (var stream in streams)
+        {
+            var item = new ChannelItemInfo
+            {
+                Id = $"{provider.Id}_vod_{stream.StreamId}",
+                Name = stream.Name,
+                Type = ChannelItemType.Media,
+                MediaType = ChannelMediaType.Video,
+                ContentType = ChannelMediaContentType.Movie,
+            };
+
+            if (!string.IsNullOrEmpty(stream.StreamIcon))
+            {
+                item.ImageUrl = stream.StreamIcon;
+            }
+
+            items.Add(item);
         }
 
         return items;

@@ -9,6 +9,14 @@
     "owner": "nizanth",
     "versions": [
       {
+        "changelog": "Fix: change episode ContentType from Episode to Movie so Jellyfin uses its reliable Movie playback path; add category folder structure to both VodChannel and SeriesChannel so content is browseable by provider category at the root level.",
+        "checksum": "7a4efc8fcfcb86f43cde68cf3d66e90a",
+        "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.15/flux_1.1.15.0.zip",
+        "targetAbi": "10.9.0.0",
+        "timestamp": "2026-05-16T00:00:00Z",
+        "version": "1.1.15.0"
+      },
+      {
         "changelog": "Fix: remove IRequiresMediaInfoCallback from SeriesChannel so Jellyfin uses the stored MediaSources (embedded at index time in v1.1.13) instead of calling the callback, which is not reliably invoked for Episode-type channel items in Jellyfin 10.9.",
         "checksum": "82fa3f7df1ed03b890df98a0950f8126",
         "sourceUrl": "https://github.com/nizanth/flux/releases/download/v1.1.14/flux_1.1.14.0.zip",

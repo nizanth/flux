@@ -11,8 +11,10 @@ using Microsoft.Extensions.Logging;
 namespace Jellyfin.Plugin.Flux.Channels;
 
 /// <summary>
-/// Jellyfin IChannel implementation that exposes Xtream Codes series content as a
-/// three-level browse-able hierarchy: Series → Season → Episode.
+/// Jellyfin IChannel implementation that exposes Xtream Codes series content browseable
+/// by category. Root shows category folders; drilling in shows Series → Season → Episode.
+/// Episodes are surfaced as Movie-typed items so Jellyfin uses the stored MediaSources
+/// path, which works reliably in Jellyfin 10.9.
 /// </summary>
 public sealed class SeriesChannel : IChannel
 {
@@ -70,7 +72,7 @@ public sealed class SeriesChannel : IChannel
     public InternalChannelFeatures GetChannelFeatures()
         => new InternalChannelFeatures
         {
-            ContentTypes = new List<ChannelMediaContentType> { ChannelMediaContentType.Episode },
+            ContentTypes = new List<ChannelMediaContentType> { ChannelMediaContentType.Movie },
             MediaTypes = new List<ChannelMediaType> { ChannelMediaType.Video },
         };
 
@@ -86,8 +88,23 @@ public sealed class SeriesChannel : IChannel
 
         if (string.IsNullOrEmpty(folderId))
         {
-            var items = BuildSeriesItems();
+            var items = BuildCategoryFolders();
             return new ChannelItemResult { Items = items, TotalRecordCount = items.Count };
+        }
+
+        if (folderId.StartsWith("series-cat:", StringComparison.Ordinal))
+        {
+            // Format: series-cat:{providerId}:{categoryId}
+            var parts = folderId.Split(':', 3);
+            if (parts.Length == 3 && Guid.TryParse(parts[1], out var providerId))
+            {
+                var categoryId = parts[2];
+                var items = BuildSeriesItemsForCategory(providerId, categoryId);
+                return new ChannelItemResult { Items = items, TotalRecordCount = items.Count };
+            }
+
+            _logger.LogWarning("SeriesChannel: could not parse category folder '{FolderId}'", folderId);
+            return new ChannelItemResult { Items = new List<ChannelItemInfo>() };
         }
 
         if (folderId.StartsWith("series:", StringComparison.Ordinal))
@@ -166,7 +183,7 @@ public sealed class SeriesChannel : IChannel
                                     Name = ep.Title,
                                     Type = ChannelItemType.Media,
                                     MediaType = ChannelMediaType.Video,
-                                    ContentType = ChannelMediaContentType.Episode,
+                                    ContentType = ChannelMediaContentType.Movie,
                                     MediaSources = new List<MediaSourceInfo>
                                     {
                                         new MediaSourceInfo
@@ -211,38 +228,111 @@ public sealed class SeriesChannel : IChannel
     public IEnumerable<ImageType> GetSupportedChannelImages()
         => Enumerable.Empty<ImageType>();
 
-    private List<ChannelItemInfo> BuildSeriesItems()
+    private List<ChannelItemInfo> BuildCategoryFolders()
     {
         var items = new List<ChannelItemInfo>();
+        var allProviders = _providerRegistry.GetAll();
+        var multiProvider = allProviders.Count > 1;
 
-        foreach (var provider in _providerRegistry.GetAll())
+        foreach (var provider in allProviders)
         {
             var catalog = _catalogCache.GetOrCreate(provider.Id);
-            var seriesList = catalog.Series;
+            var categories = catalog.SeriesCategories;
 
-            if (seriesList is null || seriesList.Count == 0)
+            if (categories is null || categories.Count == 0)
             {
-                _logger.LogDebug("No series cached for provider '{Provider}'; skipping.", provider.DisplayName);
+                _logger.LogDebug("No series categories cached for provider '{Provider}'; falling back to flat list.", provider.DisplayName);
+                var flat = BuildSeriesItemsForProvider(provider.Id);
+                items.AddRange(flat);
                 continue;
             }
 
-            foreach (var series in seriesList)
+            foreach (var category in categories)
             {
-                var item = new ChannelItemInfo
+                var name = multiProvider
+                    ? $"{provider.DisplayName} — {category.CategoryName}"
+                    : category.CategoryName;
+
+                items.Add(new ChannelItemInfo
                 {
-                    Id = $"series:{provider.Id}:{series.SeriesId}",
-                    Name = series.Name,
+                    Id = $"series-cat:{provider.Id}:{category.CategoryId}",
+                    Name = name,
                     Type = ChannelItemType.Folder,
-                    FolderType = ChannelFolderType.Series,
-                };
-
-                if (!string.IsNullOrEmpty(series.Cover))
-                {
-                    item.ImageUrl = series.Cover;
-                }
-
-                items.Add(item);
+                });
             }
+        }
+
+        return items;
+    }
+
+    private List<ChannelItemInfo> BuildSeriesItemsForCategory(Guid providerId, string categoryId)
+    {
+        var provider = _providerRegistry.GetById(providerId);
+        if (provider is null)
+        {
+            _logger.LogWarning("SeriesChannel: provider '{ProviderId}' not found for category '{CategoryId}'", providerId, categoryId);
+            return new List<ChannelItemInfo>();
+        }
+
+        var catalog = _catalogCache.GetOrCreate(providerId);
+        var seriesList = catalog.Series?
+            .Where(s => s.CategoryId == categoryId)
+            .ToList();
+
+        if (seriesList is null || seriesList.Count == 0)
+        {
+            _logger.LogDebug("No series for provider '{Provider}' category '{CategoryId}'.", provider.DisplayName, categoryId);
+            return new List<ChannelItemInfo>();
+        }
+
+        var items = new List<ChannelItemInfo>(seriesList.Count);
+        foreach (var series in seriesList)
+        {
+            var item = new ChannelItemInfo
+            {
+                Id = $"series:{provider.Id}:{series.SeriesId}",
+                Name = series.Name,
+                Type = ChannelItemType.Folder,
+                FolderType = ChannelFolderType.Series,
+            };
+
+            if (!string.IsNullOrEmpty(series.Cover))
+            {
+                item.ImageUrl = series.Cover;
+            }
+
+            items.Add(item);
+        }
+
+        return items;
+    }
+
+    private List<ChannelItemInfo> BuildSeriesItemsForProvider(Guid providerId)
+    {
+        var provider = _providerRegistry.GetById(providerId);
+        if (provider is null) return new List<ChannelItemInfo>();
+
+        var catalog = _catalogCache.GetOrCreate(providerId);
+        var seriesList = catalog.Series;
+        if (seriesList is null || seriesList.Count == 0) return new List<ChannelItemInfo>();
+
+        var items = new List<ChannelItemInfo>(seriesList.Count);
+        foreach (var series in seriesList)
+        {
+            var item = new ChannelItemInfo
+            {
+                Id = $"series:{provider.Id}:{series.SeriesId}",
+                Name = series.Name,
+                Type = ChannelItemType.Folder,
+                FolderType = ChannelFolderType.Series,
+            };
+
+            if (!string.IsNullOrEmpty(series.Cover))
+            {
+                item.ImageUrl = series.Cover;
+            }
+
+            items.Add(item);
         }
 
         return items;
